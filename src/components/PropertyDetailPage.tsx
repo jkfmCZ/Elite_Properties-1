@@ -1,7 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, MapPin, Bed, Bath, Square, Calendar, Phone, Mail, Heart, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  IconArrowLeft, 
+  IconMapPin, 
+  IconBed, 
+  IconBath, 
+  IconSquare, 
+  IconCalendar, 
+  IconPhone, 
+  IconMail, 
+  IconHeart, 
+  IconShare, 
+  IconChevronLeft, 
+  IconChevronRight 
+} from '@tabler/icons-react';
 import { mockProperties } from '../data/mockData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -138,7 +151,7 @@ export function PropertyDetailPage() {
         >
           <Button variant="ghost" asChild className="mb-4">
             <Link to="/properties" className="flex items-center">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <IconArrowLeft className="mr-2 h-4 w-4" />
               Back to Properties
             </Link>
           </Button>
@@ -178,7 +191,7 @@ export function PropertyDetailPage() {
                       className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0 h-10 w-12 flex items-center justify-center"
                       onClick={handleFavorite}
                     >
-                      <Heart className={`h-5 w-5 transition-colors duration-200 ${
+                      <IconHeart className={`h-5 w-5 transition-colors duration-200 ${
                         isFavorited 
                           ? 'text-red-500 fill-current' 
                           : 'text-gray-600 hover:text-red-500'
@@ -190,7 +203,7 @@ export function PropertyDetailPage() {
                       className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0 h-10 w-12 flex items-center justify-center"
                       onClick={handleShare}
                     >
-                      <Share2 className="h-5 w-5 text-blue-500 hover:text-blue-600 transition-colors duration-200" />
+                      <IconShare className="h-5 w-5 text-blue-500 hover:text-blue-600 transition-colors duration-200" />
                     </Button>
                 </div>
                 
@@ -203,7 +216,7 @@ export function PropertyDetailPage() {
                       className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/95 backdrop-blur-sm hover:bg-white shadow-xl border-0 h-10 w-14 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-105"
                       onClick={prevImage}
                     >
-                      <ChevronLeft className="h-10 w-10 text-gray-800" />
+                      <IconChevronLeft className="h-10 w-10 text-gray-800" />
                     </Button>
                     <Button
                       size="icon"
@@ -211,7 +224,7 @@ export function PropertyDetailPage() {
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/95 backdrop-blur-sm hover:bg-white shadow-xl border-0 h-10 w-14 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-105"
                       onClick={nextImage}
                     >
-                      <ChevronRight className="h-10 w-10 text-gray-800" />
+                      <IconChevronRight className="h-10 w-10 text-gray-800" />
                     </Button>
                   </>
                 )}
@@ -282,7 +295,7 @@ export function PropertyDetailPage() {
                         {property.title}
                       </CardTitle>
                       <div className="flex items-center text-gray-600 dark:text-gray-300 mt-2">
-                        <MapPin className="h-5 w-5 mr-2" />
+                        <IconMapPin className="h-5 w-5 mr-2" />
                         <span className="text-lg">{property.location}</span>
                       </div>
                     </div>
@@ -301,17 +314,17 @@ export function PropertyDetailPage() {
                     <>
                       <div className="grid grid-cols-3 gap-4 mb-6">
                         <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <Bed className="h-8 w-8 mx-auto mb-2 text-emerald-600 dark:text-emerald-400" />
+                          <IconBed className="h-8 w-8 mx-auto mb-2 text-emerald-600 dark:text-emerald-400" />
                           <div className="text-2xl font-bold text-gray-900 dark:text-white">{property.bedrooms}</div>
                           <div className="text-sm text-gray-600 dark:text-gray-300">Bedrooms</div>
                         </div>
                         <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <Bath className="h-8 w-8 mx-auto mb-2 text-emerald-600 dark:text-emerald-400" />
+                          <IconBath className="h-8 w-8 mx-auto mb-2 text-emerald-600 dark:text-emerald-400" />
                           <div className="text-2xl font-bold text-gray-900 dark:text-white">{property.bathrooms}</div>
                           <div className="text-sm text-gray-600 dark:text-gray-300">Bathrooms</div>
                         </div>
                         <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <Square className="h-8 w-8 mx-auto mb-2 text-emerald-600 dark:text-emerald-400" />
+                          <IconSquare className="h-8 w-8 mx-auto mb-2 text-emerald-600 dark:text-emerald-400" />
                           <div className="text-2xl font-bold text-gray-900 dark:text-white">{property.squareFootage.toLocaleString()}</div>
                           <div className="text-sm text-gray-600 dark:text-gray-300">Sq Ft</div>
                         </div>
@@ -323,7 +336,7 @@ export function PropertyDetailPage() {
                   {property.type === 'plot' && (
                     <>
                       <div className="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg mb-6">
-                        <Square className="h-12 w-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400" />
+                        <IconSquare className="h-12 w-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400" />
                         <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                           {property.squareFootage.toLocaleString()} sq ft
                         </div>
@@ -408,16 +421,16 @@ export function PropertyDetailPage() {
                   
                   <div className="space-y-3">
                     <Button className="w-full" size="lg">
-                      <Phone className="mr-2 h-4 w-4" />
+                      <IconPhone className="mr-2 h-4 w-4" />
                       Call Now
                     </Button>
                     <Button variant="outline" className="w-full" size="lg">
-                      <Mail className="mr-2 h-4 w-4" />
+                      <IconMail className="mr-2 h-4 w-4" />
                       Send Email
                     </Button>
                     <Button variant="outline" className="w-full" size="lg" asChild>
                       <Link to="/chat">
-                        <Calendar className="mr-2 h-4 w-4" />
+                        <IconCalendar className="mr-2 h-4 w-4" />
                         Schedule Meeting
                       </Link>
                     </Button>

@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   IconSend,  
   IconUser, 
@@ -19,9 +18,9 @@ import {
   IconCalculator, 
   IconPhoneCall, 
   IconRestore ,
-  IconMessageChatbot
+  IconMessageChatbot,
+  IconHeart
 } from '@tabler/icons-react';
-import { Heart } from 'lucide-react';
 import { ChatMessage, Broker, MarketInsight, QuickAction } from '../types';
 import { Property } from '../types';
 import { SimpleChatBot } from '../utils/chatBot';
@@ -37,6 +36,7 @@ import { useToast } from '../hooks/use-toast';
 export function ChatPage() {
   const [favorites, setFavorites] = useLocalStorage<string[]>('favorites', []);
   const { toast } = useToast();
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true); // Track if we should auto-scroll
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -53,12 +53,43 @@ export function ChatPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use a more stable scroll approach that doesn't interfere with user interactions
+    requestAnimationFrame(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Simple scroll to bottom when new messages are added
+    if (shouldAutoScroll) {
+      scrollToBottom();
+    }
+  }, [messages, shouldAutoScroll]);
+
+  // Listen for manual scroll events to manage auto-scroll behavior
+  useEffect(() => {
+    const scrollContainer = messagesEndRef.current?.parentElement?.parentElement;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      
+      // If user scrolls up significantly, disable auto-scroll
+      if (!isNearBottom && shouldAutoScroll) {
+        setShouldAutoScroll(false);
+      }
+      // If user scrolls back to bottom, re-enable auto-scroll
+      else if (isNearBottom && !shouldAutoScroll) {
+        setShouldAutoScroll(true);
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [shouldAutoScroll]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
@@ -169,8 +200,8 @@ export function ChatPage() {
     setMessages(prev => [...prev, actionsMessage]);
   };
 
-  // Handle favorite toggle
-  const handleFavorite = (property: Property, e: React.MouseEvent) => {
+  // Handle favorite toggle with useCallback to prevent re-renders
+  const handleFavorite = useCallback((property: Property, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -189,7 +220,9 @@ export function ChatPage() {
         description: `${property.title} has been added to your favorites.`,
       });
     }
-  };
+    
+    // Don't disable auto-scroll for favorite actions to prevent embed re-rendering
+  }, [favorites, setFavorites, toast]);
 
   const formatPrice = (price: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(price);
 
@@ -200,102 +233,162 @@ export function ChatPage() {
     });
   };
 
-  // Embed Components
-  const PropertyCard = ({ property, index }: { property: Property; index: number }) => (
-    <motion.div
-      initial={{ y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: 0.4 + index * 0.1 }}
-      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-xl transition-all duration-300 group max-w-full overflow-hidden"
-    >
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative overflow-hidden rounded-lg flex-shrink-0">
-          <img
-            src={property.imageUrl}
-            alt={property.title}
-            className="w-full sm:w-32 h-24 sm:h-24 object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-          <Badge 
-            variant="secondary" 
-            className="absolute top-2 left-2 text-xs bg-white/90 text-gray-900 font-medium z-10"
-          >
-            {property.type.charAt(0).toUpperCase() + property.type.slice(1)}
-          </Badge>
-          <Button
-            size="icon"
-            variant="secondary"
-            className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0 h-8 w-8 flex items-center justify-center rounded-full z-10"
-            onClick={(e) => handleFavorite(property, e)}
-          >
-            <Heart className={`h-4 w-4 transition-all duration-200 ${
-              favorites.includes(property.id)
-                ? 'text-red-500 fill-red-500 scale-110' 
-                : 'text-gray-700 hover:text-red-500 hover:scale-110'
-            }`} />
-          </Button>
-        </div>
-        
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <div className="mb-3">
-            <h4 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg mb-2 truncate group-hover:text-emerald-600 transition-colors">
-              {property.title}
-            </h4>
-            <div className="flex items-center text-gray-600 dark:text-gray-300 mb-3">
-              <IconMapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-              <span className="text-sm truncate">{property.location}</span>
-            </div>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <div className="text-emerald-600 dark:text-emerald-400 font-bold text-lg">
-              {formatPrice(property.price)}
-            </div>
-            
-            {property.type !== 'plot' && (
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
-                <div className="flex items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1">
-                  <IconBed className="h-4 w-4 mr-1" />
-                  <span className="font-medium">{property.bedrooms}</span>
-                </div>
-                <div className="flex items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1">
-                  <IconBath className="h-4 w-4 mr-1" />
-                  <span className="font-medium">{property.bathrooms}</span>
-                </div>
-                <div className="flex items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1">
-                  <IconSquare className="h-4 w-4 mr-1" />
-                  <span className="font-medium">{property.squareFootage.toLocaleString()}</span>
-                </div>
-              </div>
-            )}
-            
-            {property.type === 'plot' && (
-              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                <div className="flex items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1">
-                  <IconSquare className="h-4 w-4 mr-1" />
-                  <span className="font-medium">{property.squareFootage.toLocaleString()} sq ft</span>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex gap-2">
-            <Button asChild size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 transition-colors">
-              <Link to={`/property/${property.id}`} className="flex items-center justify-center">
-                View Details
-                <IconExternalLink className="ml-2 h-4 w-4" />
-              </Link>
+  // Memoized Embed Components to prevent unnecessary re-renders
+  const PropertyCard = memo(({ property, isFavorited }: { property: Property; index: number; isFavorited: boolean; hasAnimated?: boolean }) => {
+    return (
+      <div
+        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-xl transition-all duration-300 group max-w-full overflow-hidden"
+      >
+        <div className="flex flex-col sm:flex-row gap-6">
+          <div className="relative overflow-hidden rounded-lg flex-shrink-0">
+            <img
+              src={property.imageUrl}
+              alt={property.title}
+              className="w-full sm:w-48 h-32 sm:h-32 object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <Badge 
+              variant="secondary" 
+              className="absolute top-2 left-2 text-xs bg-white/90 text-gray-900 font-medium z-10"
+            >
+              {property.type.charAt(0).toUpperCase() + property.type.slice(1)}
+            </Badge>
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0 h-8 w-8 p-0 flex items-center justify-center rounded-md transition-all duration-200"
+              onClick={(e) => handleFavorite(property, e)}
+              aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+              onMouseDown={(e) => e.stopPropagation()} // Prevent any mouse down propagation
+            >
+              <IconHeart
+                className={`w-3 h-3 transition-all duration-200 ${
+                isFavorited
+                  ? 'text-red-500 fill-red-500' 
+                  : 'text-gray-600 hover:text-red-500'
+                }`}
+                strokeWidth={2}
+                fill={isFavorited ? 'currentColor' : 'none'}
+              />
             </Button>
+          </div>
+          
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="mb-4">
+              <h4 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg mb-2 truncate group-hover:text-emerald-600 transition-colors">
+                {property.title}
+              </h4>
+              <div className="flex items-center text-gray-600 dark:text-gray-300 mb-3">
+                <IconMapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="text-sm truncate">{property.location}</span>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div className="text-emerald-600 dark:text-emerald-400 font-bold text-lg">
+                {formatPrice(property.price)}
+              </div>
+              
+              {property.type !== 'plot' && (
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+                  <div className="flex items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1">
+                    <IconBed className="h-4 w-4 mr-1" />
+                    <span className="font-medium">{property.bedrooms}</span>
+                  </div>
+                  <div className="flex items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1">
+                    <IconBath className="h-4 w-4 mr-1" />
+                    <span className="font-medium">{property.bathrooms}</span>
+                  </div>
+                  <div className="flex items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1">
+                    <IconSquare className="h-4 w-4 mr-1" />
+                    <span className="font-medium">{property.squareFootage.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+              
+              {property.type === 'plot' && (
+                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1">
+                    <IconSquare className="h-4 w-4 mr-1" />
+                    <span className="font-medium">{property.squareFootage.toLocaleString()} sq ft</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              <Button asChild size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 transition-colors">
+                <Link to={`/property/${property.id}`} className="flex items-center justify-center">
+                  View Details
+                  <IconExternalLink className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-    </motion.div>
-  );
+    );
+  }, (prevProps, nextProps) => {
+    // Custom comparison function for React.memo
+    // Only re-render if property.id or isFavorited changes
+    return (
+      prevProps.property.id === nextProps.property.id &&
+      prevProps.isFavorited === nextProps.isFavorited
+    );
+  });
 
-  const BrokerCard = ({ broker, index }: { broker: Broker; index: number }) => (
-    <motion.div
-      initial={{ y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: 0.4 + index * 0.1 }}
+  // Memoized embed container to prevent re-animations
+  const EmbedContainer = memo(({ message, favorites }: { message: ChatMessage; favorites: string[] }) => {
+    return (
+      <div className="w-full mt-3 max-w-full">
+        {/* Property Embed */}
+        {message.type === 'property' && message.embedData?.properties && (
+          <div className="space-y-3 max-w-full">
+            {message.embedData.properties.map((property, index) => (
+              <PropertyCard 
+                key={`${message.id}-${property.id}`} 
+                property={property} 
+                index={index} 
+                isFavorited={favorites.includes(property.id)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Broker Embed */}
+        {message.type === 'broker' && message.embedData?.brokers && (
+          <div className="space-y-3 max-w-full">
+            {message.embedData.brokers.map((broker, index) => (
+              <BrokerCard key={broker.id} broker={broker} index={index} />
+            ))}
+          </div>
+        )}
+
+        {/* Market Insight Embed */}
+        {message.type === 'market-insight' && message.embedData?.marketData && (
+          <MarketInsightCard marketData={message.embedData.marketData} />
+        )}
+
+        {/* Quick Actions Embed */}
+        {message.type === 'quick-actions' && message.embedData?.actions && (
+          <QuickActionsGrid actions={message.embedData.actions} />
+        )}
+      </div>
+    );
+  }, (prevProps, nextProps) => {
+    // Only re-render if the message content, embed data, or specific favorites for this message's properties change
+    const prevFavs = prevProps.message.embedData?.properties?.map(p => prevProps.favorites.includes(p.id)) || [];
+    const nextFavs = nextProps.message.embedData?.properties?.map(p => nextProps.favorites.includes(p.id)) || [];
+    
+    return (
+      prevProps.message.id === nextProps.message.id &&
+      prevProps.message.type === nextProps.message.type &&
+      JSON.stringify(prevProps.message.embedData) === JSON.stringify(nextProps.message.embedData) &&
+      JSON.stringify(prevFavs) === JSON.stringify(nextFavs)
+    );
+  });
+
+  const BrokerCard = ({ broker }: { broker: Broker; index: number }) => (
+    <div
       className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-xl transition-all duration-300 max-w-full overflow-hidden"
     >
       <div className="flex items-start gap-4">
@@ -352,14 +445,11 @@ export function ChatPage() {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 
   const MarketInsightCard = ({ marketData }: { marketData: MarketInsight }) => (
-    <motion.div
-      initial={{ y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: 0.4 }}
+    <div
       className="bg-gradient-to-br from-emerald-50 to-blue-50 dark:from-emerald-900/20 dark:to-blue-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-4 max-w-full overflow-hidden"
     >
       <div className="flex items-center justify-between mb-4">
@@ -382,22 +472,16 @@ export function ChatPage() {
       <div className="text-xs text-gray-500 dark:text-gray-400">
         {marketData.timeframe}
       </div>
-    </motion.div>
+    </div>
   );
 
   const QuickActionsGrid = ({ actions }: { actions: QuickAction[] }) => (
-    <motion.div
-      initial={{ y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: 0.4 }}
+    <div
       className="grid grid-cols-2 gap-3 max-w-full"
     >
-      {actions.map((action, index) => (
-        <motion.div
+      {actions.map((action) => (
+        <div
           key={action.id}
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 + index * 0.1 }}
           className="min-w-0"
         >
           <Button
@@ -414,9 +498,9 @@ export function ChatPage() {
             </div>
             <p className="text-xs opacity-75 text-left w-full line-clamp-2">{action.description}</p>
           </Button>
-        </motion.div>
+        </div>
       ))}
-    </motion.div>
+    </div>
   );
 
   const handleQuickAction = (action: string) => {
@@ -503,11 +587,7 @@ export function ChatPage() {
   return (
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="text-center mb-8"
-        >
+        <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <IconMessageChatbot className="h-12 w-12 text-emerald-600 dark:text-emerald-400" />
           </div>
@@ -517,13 +597,9 @@ export function ChatPage() {
           <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto px-4">
             Ask me about properties, get market insights, or schedule meetings with our expert brokers.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
+        <div>
           <Card className="h-[70vh] min-h-[500px] max-h-[700px] flex flex-col">
             <CardHeader className="border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -551,94 +627,52 @@ export function ChatPage() {
             <CardContent className="flex-1 p-0 overflow-hidden">
               <ScrollArea className="h-full">
                 <div className="p-4 space-y-4">
-                  <AnimatePresence>
-                    {messages.map((message) => (
-                      <div key={message.id} className="w-full">
-                        <motion.div
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          exit={{ y: -20, opacity: 0 }}
-                          className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
-                        >
-                          {message.content && (
-                            <div className={`flex max-w-[85%] sm:max-w-[75%] ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 sm:gap-3`}>
-                              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                                message.sender === 'user' 
-                                  ? 'bg-emerald-600 text-white' 
-                                  : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                              }`}>
-                                {message.sender === 'user' ? (
-                                  <IconUser className="h-4 w-4" />
-                                ) : (
-                                  <IconMessageChatbot className="h-4 w-4" />
-                                )}
-                              </div>
-                              
-                              <div className={`rounded-lg px-3 sm:px-4 py-2 ${
-                                message.sender === 'user'
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-                              }`}>
-                                <p className="text-sm sm:text-base leading-relaxed">{message.content}</p>
-                                <p className={`text-xs mt-1 ${
-                                  message.sender === 'user' 
-                                    ? 'text-emerald-100' 
-                                    : 'text-gray-500 dark:text-gray-400'
-                                }`}>
-                                  {formatTime(message.timestamp)}
-                                </p>
-                              </div>
+                  {messages.map((message) => (
+                    <div key={message.id} className="w-full">
+                      <div
+                        className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
+                      >
+                        {message.content && (
+                          <div className={`flex max-w-[85%] sm:max-w-[75%] ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 sm:gap-3`}>
+                            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                              message.sender === 'user' 
+                                ? 'bg-emerald-600 text-white' 
+                                : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                            }`}>
+                              {message.sender === 'user' ? (
+                                <IconUser className="h-4 w-4" />
+                              ) : (
+                                <IconMessageChatbot className="h-4 w-4" />
+                              )}
                             </div>
-                          )}
-                        </motion.div>
-                        
-                        {/* Enhanced Embeds System */}
-                        {message.embedData && (
-                          <motion.div
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.3 }}
-                            className="w-full mt-3 max-w-full"
-                          >
-                            {/* Property Embed */}
-                            {message.type === 'property' && message.embedData.properties && (
-                              <div className="space-y-3 max-w-full">
-                                {message.embedData.properties.map((property, index) => (
-                                  <PropertyCard key={property.id} property={property} index={index} />
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Broker Embed */}
-                            {message.type === 'broker' && message.embedData.brokers && (
-                              <div className="space-y-3 max-w-full">
-                                {message.embedData.brokers.map((broker, index) => (
-                                  <BrokerCard key={broker.id} broker={broker} index={index} />
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Market Insight Embed */}
-                            {message.type === 'market-insight' && message.embedData.marketData && (
-                              <MarketInsightCard marketData={message.embedData.marketData} />
-                            )}
-
-                            {/* Quick Actions Embed */}
-                            {message.type === 'quick-actions' && message.embedData.actions && (
-                              <QuickActionsGrid actions={message.embedData.actions} />
-                            )}
-                          </motion.div>
+                            
+                            <div className={`rounded-lg px-3 sm:px-4 py-2 ${
+                              message.sender === 'user'
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
+                            }`}>
+                              <p className="text-sm sm:text-base leading-relaxed">{message.content}</p>
+                              <p className={`text-xs mt-1 ${
+                                message.sender === 'user' 
+                                  ? 'text-emerald-100' 
+                                  : 'text-gray-500 dark:text-gray-400'
+                              }`}>
+                                {formatTime(message.timestamp)}
+                              </p>
+                            </div>
+                          </div>
                         )}
                       </div>
-                    ))}
-                  </AnimatePresence>
+                      
+                      {/* Enhanced Embeds System */}
+                      {message.embedData && (
+                        <EmbedContainer message={message} favorites={favorites} />
+                      )}
+                    </div>
+                  ))}
 
                   {isTyping && (
-                    <motion.div
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      className="flex justify-start"
-                    >
+                    <div className="flex justify-start">
                       <div className="flex items-start gap-2 sm:gap-3">
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                           <IconMessageChatbot className="h-4 w-4 text-gray-600 dark:text-gray-300" />
@@ -651,7 +685,7 @@ export function ChatPage() {
                           </div>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
                 </div>
                 <div ref={messagesEndRef} />
@@ -729,7 +763,7 @@ export function ChatPage() {
               </p>
             </div>
           </Card>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

@@ -6,7 +6,6 @@ import {
   IconBed, IconBath, IconSquare, IconArrowRight, IconMessageCircle,
   IconChevronRight, IconCertificate, IconCalendar, IconHeart
 } from '@tabler/icons-react';
-import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -196,10 +195,10 @@ export function HomePage() {
                       <Button
                         size="icon"
                         variant="secondary"
-                        className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0 h-10 w-10 flex items-center justify-center rounded-full"
+                        className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0  h-8 w-8 p-0 flex items-center justify-center rounded-md"
                         onClick={(e) => handleFavorite(property.id, property.title, e)}
                       >
-                        <Heart className={`h-5 w-5 transition-all duration-200 ${
+                        <IconHeart className={`h-3 w-3 transition-all duration-200 ${
                           favorites.includes(property.id)
                             ? 'text-red-500 fill-red-500 scale-110' 
                             : 'text-gray-700 hover:text-red-500 hover:scale-110'
@@ -294,10 +293,10 @@ export function HomePage() {
                       <Button
                         size="icon"
                         variant="secondary"
-                        className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0 h-10 w-10 flex items-center justify-center rounded-full"
+                        className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0 h-10 w-12 flex items-center justify-center rounded-md"
                         onClick={(e) => handleFavorite(property.id, property.title, e)}
                       >
-                        <Heart className={`h-5 w-5 transition-all duration-200 ${
+                        <IconHeart className={`h-3 w-3 transition-all duration-200 ${
                           favorites.includes(property.id)
                             ? 'text-red-500 fill-red-500 scale-110' 
                             : 'text-gray-700 hover:text-red-500 hover:scale-110'

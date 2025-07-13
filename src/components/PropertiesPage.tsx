@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter } from 'lucide-react';
-import { IconRefresh } from '@tabler/icons-react';
+import { IconSearch, IconFilter, IconRefresh } from '@tabler/icons-react';
 import { Property } from '../types';
 import { mockProperties } from '../data/mockData';
 import { PropertyCard } from './PropertyCard';
@@ -137,7 +136,7 @@ export function PropertiesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                 {/* Search */}
                 <div className="relative sm:col-span-2 lg:col-span-2">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     placeholder="Search properties..."
                     value={searchTerm}
@@ -242,7 +241,7 @@ export function PropertiesPage() {
             className="text-center py-12"
           >
             <div className="text-gray-400 mb-4">
-              <Filter className="h-16 w-16 mx-auto" />
+              <IconFilter className="h-16 w-16 mx-auto" />
             </div>
             <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
               No properties found

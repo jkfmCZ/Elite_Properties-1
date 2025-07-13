@@ -1,7 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Bed, Bath, Square, ArrowRight, Heart } from 'lucide-react';
+import { 
+  IconMapPin, 
+  IconBed, 
+  IconBath, 
+  IconSquare, 
+  IconArrowRight, 
+  IconHeart 
+} from '@tabler/icons-react';
 import { Property } from '../types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,10 +93,10 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
             <Button
               size="icon"
               variant="secondary"
-              className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0 h-10 w-12 flex items-center justify-center rounded-md"
+                  className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0  h-8 w-8 p-0 flex items-center justify-center rounded-md"
               onClick={handleFavorite}
             >
-              <Heart className={`h-10 w-10 transition-all duration-200 ${
+              <IconHeart className={`h-3 w-3 transition-all duration-200 ${
                 isFavorited 
                   ? 'text-red-500 fill-red-500 scale-110' 
                   : 'text-gray-700 hover:text-red-500 hover:scale-110'
@@ -107,7 +114,7 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
               {property.title}
             </h3>
             <div className="flex items-center text-gray-600 dark:text-gray-300 mb-2">
-              <MapPin className="h-4 w-4 mr-1" />
+              <IconMapPin className="h-4 w-4 mr-1" />
               <span className="text-sm">{property.location}</span>
             </div>
             <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2">
@@ -124,15 +131,15 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
           {property.type !== 'plot' && (
             <div className="flex items-center gap-2 sm:gap-4 text-gray-600 dark:text-gray-300 text-xs sm:text-sm mb-4 flex-wrap">
               <div className="flex items-center">
-                <Bed className="h-4 w-4 mr-1" />
+                <IconBed className="h-4 w-4 mr-1" />
                 <span>{property.bedrooms} bed</span>
               </div>
               <div className="flex items-center">
-                <Bath className="h-4 w-4 mr-1" />
+                <IconBath className="h-4 w-4 mr-1" />
                 <span>{property.bathrooms} bath</span>
               </div>
               <div className="flex items-center">
-                <Square className="h-4 w-4 mr-1" />
+                <IconSquare className="h-4 w-4 mr-1" />
                 <span>{property.squareFootage.toLocaleString()} sq ft</span>
               </div>
             </div>
@@ -140,7 +147,7 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
 
           {property.type === 'plot' && (
             <div className="flex items-center text-gray-600 dark:text-gray-300 text-xs sm:text-sm mb-4">
-              <Square className="h-4 w-4 mr-1" />
+              <IconSquare className="h-4 w-4 mr-1" />
               <span>{property.squareFootage.toLocaleString()} sq ft lot</span>
             </div>
           )}
@@ -151,7 +158,7 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
           >
             <Link to={`/property/${property.id}`}>
               View Details
-              <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+              <IconArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
             </Link>
           </Button>
         </CardContent>
