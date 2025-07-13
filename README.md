@@ -135,15 +135,6 @@ The application uses a consistent design system with:
 - **Components**: Reusable UI components from shadcn/ui
 - **Animations**: Subtle hover effects and transitions
 
-## 📞 Contact & Support
-
-For questions about the application or real estate inquiries:
-
-**Janek Krupička** - Senior Real Estate Broker
-- Phone: +1 123 456 7890
-- Email: janek.krupicka@eliteproperties.com
-- LinkedIn: linkedin.com/in/janekkrupicka-realtor
-
 ## 🚀 Deployment
 
 To deploy the application:
