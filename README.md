@@ -2,6 +2,10 @@
 
 A modern, responsive real estate application built with React, TypeScript, and Tailwind CSS. Features an intuitive interface for browsing properties, detailed property views with image galleries, an AI chatbot assistant, and a comprehensive favorites system.
 
+## ROADMAP
+
+<img width="960" height="744" alt="ROADMAP-PROPERTY" src="https://github.com/user-attachments/assets/1a8350ab-184f-4197-aea3-6485cefcf9a2" />
+
 ## ✨ Features
 
 - **Property Listings**: Browse through a curated collection of premium properties
