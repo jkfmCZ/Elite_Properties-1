@@ -1,20 +1,18 @@
 const { Router } = require('express');
 const { IndexController } = require('../controllers/indexController');
-const { PropertyController } = require('../controllers/propertyController');
-const { BookingController } = require('../controllers/bookingController');
-const { BrokerController } = require('../controllers/brokerController');
-const { MarketInsightController } = require('../controllers/marketInsightController');
-const { ChatController } = require('../controllers/chatController');
+const bookingController = require('../controllers/bookingController');
+const brokerController = require('../controllers/brokerController');
+const marketInsightController = require('../controllers/marketInsightController');
+const chatController = require('../controllers/chatController');
+
+// Import route modules
+const authRoutes = require('./auth');
+const propertyRoutes = require('./properties');
 
 const router = Router();
 
-// Initialize controllers
+// Initialize legacy controllers
 const indexController = new IndexController();
-const propertyController = new PropertyController();
-const bookingController = new BookingController();
-const brokerController = new BrokerController();
-const marketInsightController = new MarketInsightController();
-const chatController = new ChatController();
 
 function setRoutes(app) {
     // Root routes
@@ -29,14 +27,13 @@ function setRoutes(app) {
 function createApiRoutes() {
     const apiRouter = Router();
 
-    // Property routes
-    apiRouter.get('/properties', propertyController.getAllProperties);
-    apiRouter.get('/properties/featured', propertyController.getFeaturedProperties);
-    apiRouter.get('/properties/:id', propertyController.getPropertyById);
-    apiRouter.post('/properties', propertyController.createProperty);
-    apiRouter.put('/properties/:id', propertyController.updateProperty);
-    apiRouter.delete('/properties/:id', propertyController.deleteProperty);
+    // Authentication routes
+    apiRouter.use('/auth', authRoutes);
 
+    // Property routes (new database-enabled)
+    apiRouter.use('/properties', propertyRoutes);
+
+    // Legacy routes (to be updated later)
     // Booking routes
     apiRouter.get('/bookings', bookingController.getAllBookings);
     apiRouter.get('/bookings/:id', bookingController.getBookingById);

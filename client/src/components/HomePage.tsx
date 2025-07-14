@@ -290,10 +290,10 @@ export function HomePage() {
                       </Badge>
                     </div>
                     <div className="absolute top-4 right-4 flex gap-2">
-                      <Button
+                       <Button
                         size="icon"
                         variant="secondary"
-                        className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0 h-10 w-12 flex items-center justify-center rounded-md"
+                        className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0  h-8 w-8 p-0 flex items-center justify-center rounded-md"
                         onClick={(e) => handleFavorite(property.id, property.title, e)}
                       >
                         <IconHeart className={`h-3 w-3 transition-all duration-200 ${
