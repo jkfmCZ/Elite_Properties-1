@@ -5,7 +5,8 @@ import {
   IconBuilding, 
   IconMessageChatbot, 
   IconMoon, 
-  IconSun 
+  IconSun,
+  IconLogin 
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { useDarkMode } from '@/hooks/useDarkMode';
@@ -18,6 +19,7 @@ export function Navigation() {
     { path: '/', label: 'Home', icon: IconHome },
     { path: '/properties', label: 'Properties', icon: IconBuilding },
     { path: '/chat', label: 'Chat', icon: IconMessageChatbot },
+  
   ];
 
   return (
@@ -57,6 +59,19 @@ export function Navigation() {
             })}
           </div>
 
+          <div className="flex items-center space-x-4">
+            {/* Login Button */}
+            <Link to="/login">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center h-8 space-x-2 bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 hover:from-emerald-100 hover:to-blue-100 dark:hover:from-gray-700 dark:hover:to-gray-600 border-emerald-200 dark:border-gray-600 text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200"
+              >
+                <IconLogin className="h-4 w-4" />
+                <span>Login</span>
+              </Button>
+            </Link>
+
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -64,7 +79,7 @@ export function Navigation() {
             <Button
               size="icon"
               onClick={() => setIsDark(!isDark)}
-              className="ml-4 relative overflow-hidden bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 hover:from-emerald-100 hover:to-blue-100 dark:hover:from-gray-700 dark:hover:to-gray-600 border border-emerald-200 dark:border-gray-600 shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out"
+              className="relative overflow-hidden h-8 w-8 bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 hover:from-emerald-100 hover:to-blue-100 dark:hover:from-gray-700 dark:hover:to-gray-600 border border-emerald-200 dark:border-gray-600 shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out"
             >
               <motion.div
                 initial={false}
@@ -114,6 +129,7 @@ export function Navigation() {
               />
             </Button>
           </motion.div>
+          </div>
         </div>
       </div>
 

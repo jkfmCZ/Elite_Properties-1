@@ -4,6 +4,8 @@ import { HomePage } from './components/HomePage';
 import { PropertiesPage } from './components/PropertiesPage';
 import { ChatPage } from './components/ChatPage';
 import { PropertyDetailPage } from './components/PropertyDetailPage';
+import { LoginPage } from './components/LoginPage';
+import { NotFoundPage } from './components/NotFoundPage';
 import { ScrollToTop } from './components/ScrollToTop';
 import { Toaster } from '@/components/ui/toaster';
 import './App.css';
@@ -13,15 +15,27 @@ function App() {
     <Router>
       <ScrollToTop />
       <div className="min-h-screen w-full bg-background text-foreground">
-        <Navigation />
-        <main className="w-full">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/properties" element={<PropertiesPage />} />
-            <Route path="/property/:id" element={<PropertyDetailPage />} />
-            <Route path="/chat" element={<ChatPage />} />
-          </Routes>
-        </main>
+        <Routes>
+          {/* Login route without navigation */}
+          <Route path="/login" element={<LoginPage />} />
+          
+          {/* Routes with navigation */}
+          <Route path="/*" element={
+            <>
+              <Navigation />
+              <main className="w-full">
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/properties" element={<PropertiesPage />} />
+                  <Route path="/property/:id" element={<PropertyDetailPage />} />
+                  <Route path="/chat" element={<ChatPage />} />
+                  {/* 404 page for any unmatched routes */}
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </main>
+            </>
+          } />
+        </Routes>
         <Toaster />
       </div>
     </Router>

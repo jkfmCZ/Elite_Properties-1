@@ -10,11 +10,9 @@ const dbConfig = {
   database: process.env.DB_NAME || 'elite_properties',
   charset: 'utf8mb4',
   timezone: '+00:00',
-  acquireTimeout: 60000,
-  timeout: 60000,
-  reconnect: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  multipleStatements: true
 };
 
 // Create connection pool

@@ -1,9 +1,9 @@
 const { Router } = require('express');
 const { IndexController } = require('../controllers/indexController');
-const bookingController = require('../controllers/bookingController');
-const brokerController = require('../controllers/brokerController');
-const marketInsightController = require('../controllers/marketInsightController');
-const chatController = require('../controllers/chatController');
+const { BookingController } = require('../controllers/bookingController');
+const { BrokerController } = require('../controllers/brokerController');
+const { MarketInsightController } = require('../controllers/marketInsightController');
+const { ChatController } = require('../controllers/chatController');
 
 // Import route modules
 const authRoutes = require('./auth');
@@ -11,8 +11,12 @@ const propertyRoutes = require('./properties');
 
 const router = Router();
 
-// Initialize legacy controllers
+// Initialize controllers
 const indexController = new IndexController();
+const bookingController = new BookingController();
+const brokerController = new BrokerController();
+const marketInsightController = new MarketInsightController();
+const chatController = new ChatController();
 
 function setRoutes(app) {
     // Root routes
@@ -26,6 +30,23 @@ function setRoutes(app) {
 
 function createApiRoutes() {
     const apiRouter = Router();
+
+    // Base API route
+    apiRouter.get('/', (req, res) => {
+        res.json({
+            success: true,
+            message: 'Elite Properties API',
+            version: '1.0.0',
+            endpoints: {
+                auth: '/api/auth',
+                properties: '/api/properties',
+                bookings: '/api/bookings',
+                brokers: '/api/brokers',
+                insights: '/api/insights',
+                chat: '/api/chat'
+            }
+        });
+    });
 
     // Authentication routes
     apiRouter.use('/auth', authRoutes);
