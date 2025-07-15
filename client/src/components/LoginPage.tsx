@@ -36,18 +36,24 @@ export function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include cookies for CORS
         body: JSON.stringify({ email, password }),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
 
       if (data.success) {
         // Store the token (you might want to use a more secure method)
         localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
         
         toast({
           title: 'Login Successful',
-          description: 'Welcome back to Elite Properties!',
+          description: `Welcome back, ${data.user?.name || 'User'}!`,
         });
         
         // Redirect to home page
@@ -56,8 +62,16 @@ export function LoginPage() {
         setError(data.message || 'Login failed');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
       console.error('Login error:', err);
+      if (err instanceof Error) {
+        if (err.message.includes('fetch')) {
+          setError('Cannot connect to server. Please make sure the backend is running.');
+        } else {
+          setError('Network error. Please try again.');
+        }
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -134,15 +148,21 @@ export function LoginPage() {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 border-gray-300 dark:border-gray-600 focus:border-emerald-500 focus:ring-emerald-500"
+                    className="pl-10 pr-12 border-gray-300 dark:border-gray-600 focus:border-emerald-500 focus:ring-emerald-500"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-lg bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-gray-700 dark:to-gray-600 hover:from-emerald-100 hover:to-blue-100 dark:hover:from-gray-600 dark:hover:to-gray-500 border border-emerald-200 dark:border-gray-600 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 shadow-sm hover:shadow-md active:shadow-sm"
+                    title={showPassword ? "Hide password" : "Show password"}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <IconEyeOff className="h-4 w-4" />
+                    ) : (
+                      <IconEye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>

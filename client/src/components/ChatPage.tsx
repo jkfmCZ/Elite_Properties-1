@@ -588,19 +588,12 @@ export function ChatPage() {
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <IconMessageChatbot className="h-12 w-12 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4 px-4">
-            AI Real Estate Assistant
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto px-4">
-            Ask me about properties, get market insights, or schedule meetings with our expert brokers.
-          </p>
+    
+          
         </div>
 
         <div>
-          <Card className="h-[70vh] min-h-[500px] max-h-[700px] flex flex-col">
+          <Card className="h-[100vh] min-h-[600px] max-h-[800px] flex flex-col">
             <CardHeader className="border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
 

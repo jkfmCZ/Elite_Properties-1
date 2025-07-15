@@ -65,11 +65,11 @@ class PropertyController {
             }
 
             // Apply pagination
-            const page = parseInt(filters.page) || 1;
-            const limit = parseInt(filters.limit) || 20;
+            const page = Math.max(1, parseInt(filters.page) || 1);
+            const limit = Math.max(1, Math.min(100, parseInt(filters.limit) || 20));
             const offset = (page - 1) * limit;
-            query += ' LIMIT ? OFFSET ?';
-            queryParams.push(limit, offset);
+            // Note: Using string interpolation for LIMIT/OFFSET to avoid MySQL 9.x prepared statement issues
+            query += ` LIMIT ${limit} OFFSET ${offset}`;
 
             const result = await executeQuery(query, queryParams);
 

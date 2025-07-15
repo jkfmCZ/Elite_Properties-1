@@ -34,10 +34,21 @@ const testConnection = async () => {
 // Execute query with error handling
 const executeQuery = async (query, params = []) => {
   try {
-    const [results] = await pool.execute(query, params);
+    // Validate parameters to catch NaN or invalid values
+    const validatedParams = params.map((param, index) => {
+      if (typeof param === 'number' && isNaN(param)) {
+        console.warn(`Warning: NaN detected in query parameter at index ${index}, replacing with null`);
+        return null;
+      }
+      return param;
+    });
+    
+    const [results] = await pool.execute(query, validatedParams);
     return { success: true, data: results };
   } catch (error) {
     console.error('Database query error:', error);
+    console.error('Query:', query);
+    console.error('Parameters:', params);
     return { success: false, error: error.message };
   }
 };

@@ -130,10 +130,7 @@ export function NotFoundPage() {
                 Browse Properties
               </Button>
             </Link>
-          </motion.div>
-
-          {/* Back Button */}
-         
+          </motion.div>      
         </motion.div>
 
         {/* Bottom Logo */}

@@ -11,14 +11,12 @@ class PropertyController {
                     p.*, 
                     b.name as broker_name,
                     b.email as broker_email,
-                    b.phone as broker_phone,
-                    GROUP_CONCAT(DISTINCT pi.image_url ORDER BY pi.sort_order) as image_urls
+                    b.phone as broker_phone
                 FROM properties p
                 LEFT JOIN brokers b ON p.broker_id = b.id
-                LEFT JOIN property_images pi ON p.id = pi.property_id
-                WHERE p.published = TRUE
+                WHERE p.published = 1
             `;
-            const queryParams = [];
+            const queryParams = []; // Start with empty params array
 
             // Apply filters
             if (filters.type) {
@@ -30,28 +28,38 @@ class PropertyController {
                 queryParams.push(filters.status);
             }
             if (filters.minPrice) {
-                query += ' AND p.price >= ?';
-                queryParams.push(Number(filters.minPrice));
+                const minPrice = parseFloat(filters.minPrice);
+                if (!isNaN(minPrice) && minPrice >= 0) {
+                    query += ' AND p.price >= ?';
+                    queryParams.push(minPrice);
+                }
             }
             if (filters.maxPrice) {
-                query += ' AND p.price <= ?';
-                queryParams.push(Number(filters.maxPrice));
+                const maxPrice = parseFloat(filters.maxPrice);
+                if (!isNaN(maxPrice) && maxPrice >= 0) {
+                    query += ' AND p.price <= ?';
+                    queryParams.push(maxPrice);
+                }
             }
             if (filters.bedrooms) {
-                query += ' AND p.bedrooms >= ?';
-                queryParams.push(Number(filters.bedrooms));
+                const bedrooms = parseInt(filters.bedrooms);
+                if (!isNaN(bedrooms) && bedrooms >= 0) {
+                    query += ' AND p.bedrooms >= ?';
+                    queryParams.push(bedrooms);
+                }
             }
             if (filters.bathrooms) {
-                query += ' AND p.bathrooms >= ?';
-                queryParams.push(Number(filters.bathrooms));
+                const bathrooms = parseFloat(filters.bathrooms);
+                if (!isNaN(bathrooms) && bathrooms >= 0) {
+                    query += ' AND p.bathrooms >= ?';
+                    queryParams.push(bathrooms);
+                }
             }
             if (filters.location) {
                 query += ' AND (p.location LIKE ? OR p.city LIKE ? OR p.state LIKE ?)';
                 const locationFilter = `%${filters.location}%`;
                 queryParams.push(locationFilter, locationFilter, locationFilter);
             }
-
-            query += ' GROUP BY p.id';
 
             // Apply sorting
             if (filters.sortBy) {
@@ -61,15 +69,15 @@ class PropertyController {
                     query += ` ORDER BY p.${filters.sortBy} ${sortOrder}`;
                 }
             } else {
-                query += ' ORDER BY p.featured DESC, p.created_at DESC';
+                query += ' ORDER BY p.created_at DESC';
             }
 
             // Apply pagination
-            const page = parseInt(filters.page) || 1;
-            const limit = parseInt(filters.limit) || 20;
+            const page = Math.max(1, parseInt(filters.page) || 1);
+            const limit = Math.max(1, Math.min(100, parseInt(filters.limit) || 20));
             const offset = (page - 1) * limit;
-            query += ' LIMIT ? OFFSET ?';
-            queryParams.push(limit, offset);
+            // Note: Using string interpolation for LIMIT/OFFSET to avoid MySQL 9.x prepared statement issues
+            query += ` LIMIT ${limit} OFFSET ${offset}`;
 
             const result = await executeQuery(query, queryParams);
 
@@ -91,44 +99,61 @@ class PropertyController {
                     property.amenities = [];
                 }
 
-                // Process images
-                if (property.image_urls) {
-                    property.images = property.image_urls.split(',').filter(url => url);
-                } else {
-                    property.images = [];
-                }
+                // Process images - for now, just use main_image_url
+                property.images = property.main_image_url ? [property.main_image_url] : [];
                 
                 // Set main image for backwards compatibility
-                property.imageUrl = property.main_image_url || (property.images.length > 0 ? property.images[0] : '');
-
-                // Remove raw image_urls field
-                delete property.image_urls;
+                property.imageUrl = property.main_image_url || '';
 
                 return property;
             });
 
             // Get total count for pagination
-            const countQuery = `
+            let countQuery = `
                 SELECT COUNT(DISTINCT p.id) as total 
                 FROM properties p 
-                WHERE p.published = TRUE
-                ${filters.type ? 'AND p.property_type = ?' : ''}
-                ${filters.status ? 'AND p.status = ?' : ''}
-                ${filters.minPrice ? 'AND p.price >= ?' : ''}
-                ${filters.maxPrice ? 'AND p.price <= ?' : ''}
-                ${filters.bedrooms ? 'AND p.bedrooms >= ?' : ''}
-                ${filters.bathrooms ? 'AND p.bathrooms >= ?' : ''}
-                ${filters.location ? 'AND (p.location LIKE ? OR p.city LIKE ? OR p.state LIKE ?)' : ''}
+                WHERE p.published = 1
             `;
 
-            const countParams = [];
-            if (filters.type) countParams.push(filters.type);
-            if (filters.status) countParams.push(filters.status);
-            if (filters.minPrice) countParams.push(Number(filters.minPrice));
-            if (filters.maxPrice) countParams.push(Number(filters.maxPrice));
-            if (filters.bedrooms) countParams.push(Number(filters.bedrooms));
-            if (filters.bathrooms) countParams.push(Number(filters.bathrooms));
+            const countParams = []; // Start with empty params array
+            if (filters.type) {
+                countQuery += ' AND p.property_type = ?';
+                countParams.push(filters.type);
+            }
+            if (filters.status) {
+                countQuery += ' AND p.status = ?';
+                countParams.push(filters.status);
+            }
+            if (filters.minPrice) {
+                const minPrice = parseFloat(filters.minPrice);
+                if (!isNaN(minPrice) && minPrice >= 0) {
+                    countQuery += ' AND p.price >= ?';
+                    countParams.push(minPrice);
+                }
+            }
+            if (filters.maxPrice) {
+                const maxPrice = parseFloat(filters.maxPrice);
+                if (!isNaN(maxPrice) && maxPrice >= 0) {
+                    countQuery += ' AND p.price <= ?';
+                    countParams.push(maxPrice);
+                }
+            }
+            if (filters.bedrooms) {
+                const bedrooms = parseInt(filters.bedrooms);
+                if (!isNaN(bedrooms) && bedrooms >= 0) {
+                    countQuery += ' AND p.bedrooms >= ?';
+                    countParams.push(bedrooms);
+                }
+            }
+            if (filters.bathrooms) {
+                const bathrooms = parseFloat(filters.bathrooms);
+                if (!isNaN(bathrooms) && bathrooms >= 0) {
+                    countQuery += ' AND p.bathrooms >= ?';
+                    countParams.push(bathrooms);
+                }
+            }
             if (filters.location) {
+                countQuery += ' AND (p.location LIKE ? OR p.city LIKE ? OR p.state LIKE ?)';
                 const locationFilter = `%${filters.location}%`;
                 countParams.push(locationFilter, locationFilter, locationFilter);
             }
@@ -172,10 +197,10 @@ class PropertyController {
                     b.rating as broker_rating
                 FROM properties p
                 LEFT JOIN brokers b ON p.broker_id = b.id
-                WHERE p.uuid = ? AND p.published = TRUE
+                WHERE p.uuid = ? AND p.published = ?
             `;
 
-            const result = await executeQuery(query, [id]);
+            const result = await executeQuery(query, [id, 1]);
 
             if (!result.success || result.data.length === 0) {
                 return res.status(404).json({
@@ -355,10 +380,10 @@ class PropertyController {
             // Check if property exists and user has permission
             const checkQuery = `
                 SELECT id, broker_id FROM properties 
-                WHERE uuid = ? AND published = TRUE
+                WHERE uuid = ? AND published = ?
             `;
 
-            const checkResult = await executeQuery(checkQuery, [id]);
+            const checkResult = await executeQuery(checkQuery, [id, 1]);
 
             if (!checkResult.success || checkResult.data.length === 0) {
                 return res.status(404).json({
@@ -526,7 +551,7 @@ class PropertyController {
             // Add published filter if provided
             if (filters.published !== undefined) {
                 query += ' AND p.published = ?';
-                queryParams.push(filters.published === 'true');
+                queryParams.push(filters.published === 'true' ? 1 : 0);
             }
 
             query += ' GROUP BY p.id ORDER BY p.created_at DESC';
