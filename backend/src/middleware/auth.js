@@ -3,14 +3,14 @@ const bcrypt = require('bcryptjs');
 const { executeQuery } = require('../config/database');
 
 // Generate JWT token
-const generateToken = (payload, expiresIn = process.env.JWT_EXPIRES_IN) => {
+const generateToken = (payload, expiresIn = process.env.JWT_EXPIRES_IN || '7d') => {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
 };
 
 // Generate refresh token
 const generateRefreshToken = (payload) => {
   return jwt.sign(payload, process.env.JWT_SECRET, { 
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN 
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d'
   });
 };
 

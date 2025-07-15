@@ -8,6 +8,7 @@
     "start": "node src/app.js",
     "setup": "node src/scripts/setupDatabase.js",
     "setup-dev": "npm install && npm run setup",
+    "migrate": "node src/scripts/runMigrations.js",
     "test": "jest",
     "lint": "eslint src/**/*.js",
     "format": "prettier --write src/**/*.js"

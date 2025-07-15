@@ -210,8 +210,8 @@ CREATE TABLE audit_log (
 CREATE TABLE broker_sessions (
     id INT PRIMARY KEY AUTO_INCREMENT,
     broker_id INT NOT NULL,
-    session_token VARCHAR(255) UNIQUE NOT NULL,
-    refresh_token VARCHAR(255) UNIQUE,
+    session_token VARCHAR(512) UNIQUE NOT NULL,
+    refresh_token VARCHAR(512) UNIQUE,
     expires_at TIMESTAMP NOT NULL,
     ip_address VARCHAR(45),
     user_agent TEXT,

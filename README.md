@@ -59,6 +59,8 @@ Make sure you have the following installed on your machine:
    # DB_PASSWORD=your_password
    # DB_NAME=elite_properties
    # JWT_SECRET=your_super_secret_jwt_key
+   # JWT_EXPIRES_IN=7d
+   # JWT_REFRESH_EXPIRES_IN=30d
    
    # Setup database (creates tables and seeds data)
    npm run setup
@@ -119,6 +121,7 @@ If you want to run just the frontend with mock data:
 - `npm start` - Start the backend production server
 - `npm run setup` - **NEW!** Setup MySQL database with schema and seed data
 - `npm run setup-dev` - Install dependencies and setup database in one command
+- `npm run migrate` - **NEW!** Run database migrations only
 - `npm test` - Run backend tests
 - `npm run lint` - Run ESLint for backend code quality
 - `npm run format` - Format backend code with Prettier
@@ -130,7 +133,10 @@ Elite_Properties/
 ├── backend/                          # Node.js/Express API Server
 │   ├── database/
 │   │   ├── schema.sql               # MySQL database schema
-│   │   └── seed.sql                 # Sample data for development
+│   │   ├── seed.sql                 # Sample data for development
+│   │   └── migrations/              # 🆕 Database migration files
+│   │       ├── 001_increase_refresh_token_size.sql
+│   │       └── README.md            # Migration documentation
 │   ├── src/
 │   │   ├── config/
 │   │   │   └── database.js          # Database connection configuration
@@ -150,7 +156,8 @@ Elite_Properties/
 │   │   │   ├── properties.js        # Property routes
 │   │   │   └── index.js             # Route registration
 │   │   ├── scripts/
-│   │   │   └── setupDatabase.js     # 🆕 Automated database setup
+│   │   │   ├── setupDatabase.js     # 🆕 Automated database setup
+│   │   │   └── runMigrations.js     # 🆕 Database migration runner
 │   │   ├── data/
 │   │   │   └── mockData.js          # Mock data (fallback)
 │   │   └── app.js                   # Express application entry point
@@ -285,6 +292,8 @@ DB_NAME=elite_properties
 
 # Authentication
 JWT_SECRET=your_super_secret_jwt_key_change_in_production
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRES_IN=30d
 
 # Server Configuration
 PORT=5000
@@ -299,7 +308,97 @@ If setup fails, check:
 3. User has permission to create databases
 4. MySQL version is 8.0 or higher
 
+### Common Issues and Solutions
+
+#### JWT Token Issues
+- **Error**: "expiresIn should be a number of seconds or string representing a timespan"
+- **Solution**: Ensure JWT_EXPIRES_IN and JWT_REFRESH_EXPIRES_IN are set in .env file
+
+#### Database Token Storage Issues  
+- **Error**: "Data too long for column 'refresh_token'"
+- **Solution**: Run migrations to update column sizes: `npm run migrate`
+
+#### Database Connection Issues
+- **Error**: "Access denied for user"
+- **Solution**: Check MySQL credentials and user permissions
+- **Error**: "Cannot connect to MySQL server"
+- **Solution**: Ensure MySQL service is running
+
 For detailed database documentation, see `backend/DATABASE_SETUP.md`.
+
+## 🔄 Database Migration System
+
+Elite Properties includes a robust database migration system to handle schema changes and updates safely across different environments.
+
+### Migration Features
+
+- **Automated Migration Detection**: Setup script automatically detects and applies pending migrations
+- **Safe Execution**: Gracefully handles already-applied migrations without errors
+- **Version Control**: Migrations are numbered and executed in order
+- **Rollback Protection**: Prevents duplicate applications of the same migration
+- **Environment Consistency**: Ensures all environments have the same database structure
+
+### Available Migration Commands
+
+```bash
+# Run migrations only (without full database setup)
+npm run migrate
+
+# Full database setup (includes migrations)
+npm run setup
+
+# Development setup with migrations
+npm run setup-dev
+```
+
+### Current Migrations
+
+#### Migration 001: Increase Refresh Token Size
+- **File**: `001_increase_refresh_token_size.sql`
+- **Purpose**: Fixed JWT token storage issues by increasing column sizes
+- **Changes**:
+  - `broker_sessions.session_token`: VARCHAR(255) → VARCHAR(512)
+  - `broker_sessions.refresh_token`: VARCHAR(255) → VARCHAR(512)
+- **Reason**: JWT tokens can exceed 255 characters, causing login failures
+
+### Creating New Migrations
+
+1. **Create migration file** in `backend/database/migrations/`:
+   ```
+   002_your_migration_name.sql
+   ```
+
+2. **Use proper SQL syntax**:
+   ```sql
+   -- Migration: Description of changes
+   -- Date: YYYY-MM-DD
+   
+   USE elite_properties;
+   
+   -- Your migration SQL here
+   ALTER TABLE table_name ADD COLUMN new_column VARCHAR(255);
+   ```
+
+3. **Test migration**:
+   ```bash
+   npm run migrate
+   ```
+
+### Migration Best Practices
+
+- **Naming**: Use sequential numbers (001, 002, etc.) followed by descriptive names
+- **Documentation**: Include clear comments about what the migration does
+- **Testing**: Test migrations on development data before production
+- **Reversibility**: Consider how to reverse changes if needed
+- **Backup**: Always backup production databases before applying migrations
+
+### Migration Safety
+
+The migration system includes several safety features:
+- **Duplicate Detection**: Skips migrations that have already been applied
+- **Error Handling**: Provides clear error messages and continues with other migrations
+- **Connection Management**: Properly manages database connections
+- **Logging**: Detailed logging of migration status and results
 
 ## 📱 Key Features Overview
 
@@ -412,6 +511,8 @@ DB_USER=your_production_db_user
 DB_PASSWORD=your_production_db_password
 DB_NAME=elite_properties
 JWT_SECRET=your_super_secure_production_jwt_secret
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRES_IN=30d
 FRONTEND_URL=https://your-frontend-domain.com
 ```
 
