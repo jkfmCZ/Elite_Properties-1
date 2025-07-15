@@ -55,8 +55,13 @@ const errorHandler = (err, req, res, next) => {
 };
 
 const notFound = (req, res, next) => {
+    // Handle favicon.ico requests silently
+    if (req.originalUrl === '/favicon.ico') {
+        return res.status(204).end();
+    }
+    
     const error = new Error(`Not found - ${req.originalUrl}`);
-    res.status(404);
+    error.statusCode = 404;
     next(error);
 };
 
