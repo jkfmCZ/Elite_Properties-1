@@ -6,20 +6,40 @@ import {
   IconMessageChatbot, 
   IconMoon, 
   IconSun,
-  IconLogin 
+  IconLogin,
+  IconSettings
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useState, useEffect } from 'react';
 
 export function Navigation() {
   const location = useLocation();
   const [isDark, setIsDark] = useDarkMode();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    const brokerData = localStorage.getItem('brokerData');
+    
+    if (token && brokerData) {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('brokerData');
+    setIsAuthenticated(false);
+    window.location.href = '/';
+  };
 
   const navItems = [
     { path: '/', label: 'Home', icon: IconHome },
     { path: '/properties', label: 'Properties', icon: IconBuilding },
     { path: '/chat', label: 'Chat', icon: IconMessageChatbot },
-  
+    ...(isAuthenticated ? [{ path: '/admin', label: 'Admin Panel', icon: IconSettings }] : [])
   ];
 
   return (
@@ -60,17 +80,29 @@ export function Navigation() {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Login Button */}
-            <Link to="/login">
+            {/* Login/Logout Button */}
+            {isAuthenticated ? (
               <Button
+                onClick={handleLogout}
                 variant="outline"
                 size="sm"
-                className="flex items-center h-8 space-x-2 bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 hover:from-emerald-100 hover:to-blue-100 dark:hover:from-gray-700 dark:hover:to-gray-600 border-emerald-200 dark:border-gray-600 text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200"
+                className="flex items-center h-8 space-x-2 bg-gradient-to-r from-red-50 to-orange-50 dark:from-gray-800 dark:to-gray-700 hover:from-red-100 hover:to-orange-100 dark:hover:from-gray-700 dark:hover:to-gray-600 border-red-200 dark:border-gray-600 text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200"
               >
                 <IconLogin className="h-4 w-4" />
-                <span>Login</span>
+                <span>Logout</span>
               </Button>
-            </Link>
+            ) : (
+              <Link to="/login">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center h-8 space-x-2 bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 hover:from-emerald-100 hover:to-blue-100 dark:hover:from-gray-700 dark:hover:to-gray-600 border-emerald-200 dark:border-gray-600 text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200"
+                >
+                  <IconLogin className="h-4 w-4" />
+                  <span>Login</span>
+                </Button>
+              </Link>
+            )}
 
           <motion.div
             whileHover={{ scale: 1.05 }}

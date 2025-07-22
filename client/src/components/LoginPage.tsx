@@ -47,17 +47,17 @@ export function LoginPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Store the token (you might want to use a more secure method)
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        // Store the token and broker data
+        localStorage.setItem('token', data.data.accessToken);
+        localStorage.setItem('brokerData', JSON.stringify(data.data.broker));
         
         toast({
           title: 'Login Successful',
-          description: `Welcome back, ${data.user?.name || 'User'}!`,
+          description: `Welcome back, ${data.data.broker?.name || 'User'}!`,
         });
         
-        // Redirect to home page
-        navigate('/');
+        // Redirect to admin dashboard if broker is authenticated
+        navigate('/admin');
       } else {
         setError(data.message || 'Login failed');
       }

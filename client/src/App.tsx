@@ -7,6 +7,8 @@ import { PropertyDetailPage } from './components/PropertyDetailPage';
 import { LoginPage } from './components/LoginPage';
 import { NotFoundPage } from './components/NotFoundPage';
 import { ScrollToTop } from './components/ScrollToTop';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from '@/components/ui/toaster';
 import './App.css';
 
@@ -29,6 +31,11 @@ function App() {
                   <Route path="/properties" element={<PropertiesPage />} />
                   <Route path="/property/:id" element={<PropertyDetailPage />} />
                   <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/admin" element={
+                    <ProtectedRoute requireAuth={true}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  } />
                   {/* 404 page for any unmatched routes */}
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
