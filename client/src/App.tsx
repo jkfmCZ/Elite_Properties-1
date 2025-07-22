@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { HomePage } from './components/HomePage';
 import { PropertiesPage } from './components/PropertiesPage';
+import { PropertiesPageSimple } from './components/PropertiesPageSimple';
 import { ChatPage } from './components/ChatPage';
 import { PropertyDetailPage } from './components/PropertyDetailPage';
 import { LoginPage } from './components/LoginPage';

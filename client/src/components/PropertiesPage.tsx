@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { IconSearch, IconFilter, IconRefresh } from '@tabler/icons-react';
+import { IconSearch, IconFilter, IconRefresh, IconWifi, IconWifiOff } from '@tabler/icons-react';
 import { Property } from '../types';
 import { mockProperties } from '../data/mockData';
 import { PropertyCard } from './PropertyCard';
@@ -10,17 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 
 export function PropertiesPage() {
+  // Start with mock data for now, add API later
   const [properties] = useState<Property[]>(mockProperties);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>(mockProperties);
   const [searchTerm, setSearchTerm] = useState('');
   const [propertyType, setPropertyType] = useState<string>('all');
   const [priceRange, setPriceRange] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('price-asc');
+  
+  // For now, we're using mock data
+  const loading = false;
+  const isUsingMockData = true;
 
-  // Apply sorting and filtering whenever any filter changes
+  // Apply sorting and filtering whenever any filter changes or data loads
   useEffect(() => {
     filterProperties(searchTerm, propertyType, priceRange);
-  }, [searchTerm, propertyType, priceRange, sortBy]);
+  }, [searchTerm, propertyType, priceRange, sortBy, properties]);
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
@@ -49,31 +54,33 @@ export function PropertiesPage() {
     console.log('Filtering with:', { term, type, range });
     let filtered = properties;
 
-    // Search filter
-    if (term) {
-      filtered = filtered.filter(property =>
+    // Search filter (for client-side filtering if needed)
+    if (term && !isUsingMockData) {
+      // If using API data, the search should be handled server-side
+      // But we can apply additional client-side filtering if needed
+      filtered = filtered.filter((property: Property) =>
         property.title.toLowerCase().includes(term.toLowerCase()) ||
         property.location.toLowerCase().includes(term.toLowerCase()) ||
         property.description.toLowerCase().includes(term.toLowerCase())
       );
     }
 
-    // Type filter
-    if (type !== 'all') {
-      filtered = filtered.filter(property => property.type === type);
+    // Type filter (for mock data or additional client-side filtering)
+    if (type !== 'all' && isUsingMockData) {
+      filtered = filtered.filter((property: Property) => property.type === type);
     }
 
-    // Price filter
-    if (range !== 'all') {
+    // Price filter (for mock data or additional client-side filtering)
+    if (range !== 'all' && isUsingMockData) {
       console.log('Applying price filter:', range);
       if (range === '1000000') {
         // Above $1M case
-        filtered = filtered.filter(property => property.price >= 1000000);
+        filtered = filtered.filter((property: Property) => property.price >= 1000000);
         console.log('Filtered for >$1M:', filtered.length, 'properties');
       } else {
         const [min, max] = range.split('-').map(Number);
         console.log('Price range:', min, 'to', max);
-        filtered = filtered.filter(property => {
+        filtered = filtered.filter((property: Property) => {
           if (max) {
             return property.price >= min && property.price <= max;
           }
@@ -84,7 +91,7 @@ export function PropertiesPage() {
     }
 
     // Sort
-    filtered.sort((a, b) => {
+    filtered.sort((a: Property, b: Property) => {
       switch (sortBy) {
         case 'price-asc':
           return b.price - a.price; // Low to High (reversed to fix issue)
@@ -123,6 +130,49 @@ export function PropertiesPage() {
             in prime locations.
           </p>
         </motion.div>
+
+        {/* Connection Status & Error Handling */}
+        {/* Temporarily disabled while using mock data */}
+
+        {/* Loading State */}
+        {/* Temporarily disabled while using mock data */}
+
+        {/* Connection Status Indicator */}
+        {!loading && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.15 }}
+            className="mb-6"
+          >
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-center">
+                {isUsingMockData ? (
+                  <>
+                    <IconWifiOff className="h-3 w-3 mr-1 text-orange-500" />
+                    <span>Using mock data - API integration coming soon</span>
+                  </>
+                ) : (
+                  <>
+                    <IconWifi className="h-3 w-3 mr-1 text-green-500" />
+                    <span>Connected to server</span>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => window.location.reload()}
+                  className="h-6 px-2 text-xs"
+                >
+                  <IconRefresh className="h-3 w-3 mr-1" />
+                  Refresh
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Filters */}
         <motion.div
@@ -209,6 +259,11 @@ export function PropertiesPage() {
         >
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
             Showing {filteredProperties.length} of {properties.length} properties
+            {isUsingMockData && (
+              <span className="ml-2 text-orange-600 dark:text-orange-400">
+                (offline mode)
+              </span>
+            )}
           </p>
         </motion.div>
 

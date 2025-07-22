@@ -13,7 +13,7 @@ import {
   IconHeart, 
   IconShare, 
   IconChevronLeft, 
-  IconChevronRight 
+  IconChevronRight
 } from '@tabler/icons-react';
 import { mockProperties } from '../data/mockData';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,10 @@ import { useToast } from '../hooks/use-toast';
 
 export function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>();
+  
+  // Find property from mock data
   const property = mockProperties.find(p => p.id === id);
+  
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [favorites, setFavorites] = useLocalStorage<string[]>('favorites', []);
   const { toast } = useToast();
@@ -38,15 +41,22 @@ export function PropertyDetailPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
 
+  // Property not found
   if (!property) {
     return (
       <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Property Not Found</h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">The property you're looking for doesn't exist.</p>
-          <Button asChild>
-            <Link to="/properties">Back to Properties</Link>
-          </Button>
+        <div className="text-center max-w-md mx-auto px-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Property Not Found
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            The property you're looking for doesn't exist.
+          </p>
+          <div className="space-x-4">
+            <Button asChild>
+              <Link to="/properties">Back to Properties</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -246,7 +256,7 @@ export function PropertyDetailPage() {
                     Gallery ({allImages.length} photos)
                   </h4>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-                    {allImages.map((image, index) => (
+                    {allImages.map((image: string, index: number) => (
                       <motion.button
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}
@@ -488,35 +498,9 @@ export function PropertyDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mockProperties
-                      .filter(p => p.id !== property.id && p.type === property.type)
-                      .slice(0, 2)
-                      .map((similarProperty) => (
-                        <Link
-                          key={similarProperty.id}
-                          to={`/property/${similarProperty.id}`}
-                          className="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex gap-3">
-                            <img
-                              src={similarProperty.imageUrl}
-                              alt={similarProperty.title}
-                              className="w-16 h-16 object-cover rounded-md"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <h5 className="font-medium text-gray-900 dark:text-white text-sm truncate">
-                                {similarProperty.title}
-                              </h5>
-                              <p className="text-xs text-gray-600 dark:text-gray-300 truncate">
-                                {similarProperty.location}
-                              </p>
-                              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                                {formatPrice(similarProperty.price)}
-                              </p>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                      Similar properties feature coming soon...
+                    </p>
                   </div>
                   <Button variant="outline" className="w-full mt-4" asChild>
                     <Link to="/properties">View All Properties</Link>
