@@ -18,6 +18,24 @@ export interface PropertyResponse {
   limit: number;
 }
 
+// Map database property to frontend Property interface
+const mapDbPropertyToFrontend = (dbProperty: any): Property => {
+  return {
+    id: dbProperty.uuid || dbProperty.id?.toString() || '',
+    title: dbProperty.title || '',
+    description: dbProperty.description || '',
+    price: parseFloat(dbProperty.price) || 0,
+    location: dbProperty.location || `${dbProperty.city || ''}, ${dbProperty.state || ''}`.trim().replace(/,$/, ''),
+    bedrooms: parseInt(dbProperty.bedrooms) || 0,
+    bathrooms: parseFloat(dbProperty.bathrooms) || 0,
+    squareFootage: parseInt(dbProperty.square_footage) || 0,
+    imageUrl: dbProperty.main_image_url || dbProperty.imageUrl || '',
+    images: dbProperty.images || (dbProperty.main_image_url ? [dbProperty.main_image_url] : []),
+    type: dbProperty.property_type || dbProperty.type || 'house',
+    status: dbProperty.status || 'available'
+  };
+};
+
 class PropertyService {
   // Get all properties with optional filters
   async getProperties(filters: PropertyFilters = {}): Promise<Property[]> {
@@ -44,12 +62,20 @@ class PropertyService {
       
       // Handle different response formats
       if (response.success && response.data) {
-        const properties = Array.isArray(response.data) ? response.data : response.data.properties || [];
-        console.log('PropertyService: Parsed properties:', properties.length, 'items');
-        return properties;
+        // Handle nested data structure
+        if (response.data.properties && Array.isArray(response.data.properties)) {
+          const properties = response.data.properties.map(mapDbPropertyToFrontend);
+          console.log('PropertyService: Parsed properties from nested structure:', properties.length, 'items');
+          return properties;
+        } else if (Array.isArray(response.data)) {
+          const properties = response.data.map(mapDbPropertyToFrontend);
+          console.log('PropertyService: Parsed properties from array data:', properties.length, 'items');
+          return properties;
+        }
       } else if (Array.isArray(response)) {
-        console.log('PropertyService: Direct array response:', response.length, 'items');
-        return response;
+        const properties = response.map(mapDbPropertyToFrontend);
+        console.log('PropertyService: Direct array response:', properties.length, 'items');
+        return properties;
       }
       
       console.warn('PropertyService: Unexpected API response format:', response);
