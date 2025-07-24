@@ -62,7 +62,7 @@ Make sure you have the following installed on your machine:
    # JWT_EXPIRES_IN=7d
    # JWT_REFRESH_EXPIRES_IN=30d
    
-   # Setup database (creates tables and seeds data)
+   # Setup database (creates tables, applies migrations, and seeds data)
    npm run setup
    
    # Create test user passwords (IMPORTANT!)
@@ -271,7 +271,7 @@ When you run `npm run setup` in the backend directory, the script will:
 ### Setup Commands
 
 ```bash
-# Basic setup - creates database and tables
+# Basic database setup - creates tables, applies migrations, and populates sample data
 npm run setup
 
 # Create test user passwords for login testing
@@ -283,6 +283,8 @@ npm run setup-dev
 # Check if setup was successful
 npm run dev  # Start server and check http://localhost:5000/health
 ```
+
+> **For New Users**: Simply run `npm run setup` - it automatically handles database creation, migrations, and sample data.
 
 ### Test User Credentials
 

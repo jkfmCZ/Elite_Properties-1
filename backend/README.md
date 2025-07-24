@@ -67,6 +67,7 @@ A comprehensive Node.js/Express backend API for the Elite Properties real estate
    This command will:
    - Create the `elite_properties` database
    - Set up all required tables with proper relationships
+   - **Automatically apply all database migrations**
    - Populate the database with sample data (4 brokers, 6 properties, bookings, reviews)
    - Display setup completion summary
 
@@ -123,7 +124,7 @@ When you run `npm run setup`, the system creates:
 ### Setup Commands
 
 ```bash
-# Basic database setup - creates tables and populates sample data
+# Basic database setup - creates tables, applies migrations, and populates sample data
 npm run setup
 
 # Create test user passwords for login testing
@@ -132,9 +133,14 @@ node src/scripts/createTestPasswords.js
 # Development setup - installs dependencies AND sets up database
 npm run setup-dev
 
+# Run only migrations (if needed separately)
+npm run migrate
+
 # Check database status
 npm run dev  # Start server and check /health endpoint
 ```
+
+> **Note**: New users only need to run `npm run setup` - migrations are automatically applied during setup.
 
 ### Test Login Credentials
 
