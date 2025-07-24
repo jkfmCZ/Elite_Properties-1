@@ -63,68 +63,9 @@ npm run dev
 
 Frontend runs with mock data at http://localhost:5173
 
-## Project Structure
-
-```
-Elite_Properties/
-├── backend/           # Node.js/Express API
-│   ├── src/
-│   │   ├── controllers/
-│   │   ├── routes/
-│   │   └── scripts/
-│   └── database/      # SQL schema & migrations
-├── client/            # React/TypeScript frontend
-│   ├── src/
-│   │   ├── components/
-│   │   ├── services/
-│   │   └── types/
-│   └── public/
-└── docs/
-```
-
-## Key Features
-
-- 🏠 **Property Listings** - Browse premium real estate
-- 🔍 **Advanced Search** - Filter by price, type, location
-- 💬 **AI Chat Assistant** - Get instant property help
-- 📱 **Responsive Design** - Works on all devices
-- 🔐 **Broker Dashboard** - Property management system
-- 📅 **Booking System** - Schedule property viewings
-
-## Common Commands
-
-```bash
-# Backend
-npm run dev          # Start development server
-npm run setup        # Setup database
-npm run migrate      # Run database migrations
-
-# Frontend
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-```
-
 ## Troubleshooting
 
-### Database Connection Issues
-1. Ensure MySQL is running
-2. Check credentials in `backend/.env`
-3. Create database manually: `CREATE DATABASE elite_properties;`
-
-### Port Already in Use
-```bash
-# Kill process on port
-npx kill-port 5000    # Backend
-npx kill-port 5173    # Frontend
-```
-
-### Module Not Found
-```bash
-# Clear cache and reinstall
-rm -rf node_modules package-lock.json
-npm install
-```
+For more detailed troubleshooting information, see the main `README.md` file.
 
 ## Development Workflow
 
