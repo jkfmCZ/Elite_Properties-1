@@ -270,21 +270,20 @@ class PropertyController {
                 address,
                 city,
                 state,
-                zipCode,
+                zip_code,
                 country = 'USA',
                 bedrooms,
                 bathrooms,
-                squareFootage,
+                square_footage,
                 lotSize,
                 yearBuilt,
-                propertyType,
+                property_type,
                 status = 'available',
                 features = [],
-                amenities = [],
-                images = []
+                amenities = []
             } = req.body;
 
-            if (!title || !price || !location || !propertyType) {
+            if (!title || !price || !location || !property_type) {
                 return res.status(400).json({
                     success: false,
                     message: 'Title, price, location, and property type are required'
@@ -302,6 +301,7 @@ class PropertyController {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
+            const { main_image_url } = req.body;
             const insertResult = await executeQuery(insertQuery, [
                 propertyUuid,
                 brokerId,
@@ -312,18 +312,18 @@ class PropertyController {
                 address,
                 city,
                 state,
-                zipCode,
+                zip_code,
                 country,
                 bedrooms,
                 bathrooms,
-                squareFootage,
+                square_footage,
                 lotSize,
                 yearBuilt,
-                propertyType,
+                property_type,
                 status,
                 JSON.stringify(features),
                 JSON.stringify(amenities),
-                images.length > 0 ? images[0] : null
+                main_image_url
             ]);
 
             if (!insertResult.success) {
@@ -334,24 +334,6 @@ class PropertyController {
             }
 
             const propertyId = insertResult.data.insertId;
-
-            // Insert property images
-            if (images.length > 0) {
-                const imageInserts = images.map((imageUrl, index) => [
-                    propertyId,
-                    imageUrl,
-                    `${title} - Image ${index + 1}`,
-                    index === 0, // First image is main
-                    index + 1
-                ]);
-
-                const imageQuery = `
-                    INSERT INTO property_images (property_id, image_url, alt_text, is_main, sort_order)
-                    VALUES ?
-                `;
-
-                await executeQuery(imageQuery, [imageInserts]);
-            }
 
             res.status(201).json({
                 success: true,
@@ -380,10 +362,10 @@ class PropertyController {
             // Check if property exists and user has permission
             const checkQuery = `
                 SELECT id, broker_id FROM properties 
-                WHERE uuid = ? AND published = ?
+                WHERE uuid = ?
             `;
 
-            const checkResult = await executeQuery(checkQuery, [id, 1]);
+            const checkResult = await executeQuery(checkQuery, [id]);
 
             if (!checkResult.success || checkResult.data.length === 0) {
                 return res.status(404).json({
@@ -407,7 +389,8 @@ class PropertyController {
                 'title', 'description', 'price', 'location', 'address', 'city', 
                 'state', 'zip_code', 'country', 'bedrooms', 'bathrooms', 
                 'square_footage', 'lot_size', 'year_built', 'property_type', 
-                'status', 'features', 'amenities', 'featured', 'published'
+                'status', 'features', 'amenities', 'featured', 'published',
+                'main_image_url'
             ];
 
             const updateFields = [];

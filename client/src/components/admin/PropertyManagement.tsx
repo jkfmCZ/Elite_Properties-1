@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-// import { PropertyForm } from './PropertyForm';
+import { PropertyForm } from './PropertyForm';
 import { useToast } from '@/hooks/use-toast';
 
 interface Property {
@@ -191,28 +191,14 @@ export function PropertyManagement() {
 
   if (showForm) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => {
-              setShowForm(false);
-              setEditingProperty(null);
-            }}
-          >
-            ← Back
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {editingProperty ? 'Edit Property' : 'Add New Property'}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300">
-              Property form will be implemented here
-            </p>
-          </div>
-        </div>
-      </div>
+      <PropertyForm
+        property={editingProperty}
+        onSave={handlePropertySaved}
+        onCancel={() => {
+          setShowForm(false);
+          setEditingProperty(null);
+        }}
+      />
     );
   }
 

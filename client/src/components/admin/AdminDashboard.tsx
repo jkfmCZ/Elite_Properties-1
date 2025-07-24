@@ -13,8 +13,7 @@ import {
 } from '@tabler/icons-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-// Temporarily comment out PropertyManagement to fix circular dependency
-// import { PropertyManagement } from './PropertyManagement';
+import { PropertyManagement } from './PropertyManagement';
 import { useToast } from '@/hooks/use-toast';
 
 interface DashboardStats {
@@ -291,16 +290,7 @@ export function AdminDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card>
-              <CardHeader>
-                <CardTitle>Property Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Property management functionality will be implemented here.
-                </p>
-              </CardContent>
-            </Card>
+            <PropertyManagement />
           </motion.div>
         )}
 
