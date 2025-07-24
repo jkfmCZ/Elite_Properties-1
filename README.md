@@ -65,6 +65,9 @@ Make sure you have the following installed on your machine:
    # Setup database (creates tables and seeds data)
    npm run setup
    
+   # Create test user passwords (IMPORTANT!)
+   node src/scripts/createTestPasswords.js
+   
    # Start backend server
    npm run dev
    ```
@@ -271,12 +274,28 @@ When you run `npm run setup` in the backend directory, the script will:
 # Basic setup - creates database and tables
 npm run setup
 
+# Create test user passwords for login testing
+node src/scripts/createTestPasswords.js
+
 # Development setup - installs dependencies and sets up database
 npm run setup-dev
 
 # Check if setup was successful
 npm run dev  # Start server and check http://localhost:5000/health
 ```
+
+### Test User Credentials
+
+After running the setup commands, you can login with these test accounts:
+
+| Email | Password | Role |
+|-------|----------|------|
+| `john.smith@eliteproperties.com` | `password123` | Broker |
+| `sarah.johnson@eliteproperties.com` | `password123` | Broker |
+| `mike.davis@eliteproperties.com` | `password123` | Broker |
+| `admin@eliteproperties.com` | `admin123` | Admin |
+
+> **Note**: These are development/testing credentials only. In production, use the register endpoint to create secure accounts.
 
 ### Environment Configuration
 

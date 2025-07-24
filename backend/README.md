@@ -70,12 +70,23 @@ A comprehensive Node.js/Express backend API for the Elite Properties real estate
    - Populate the database with sample data (4 brokers, 6 properties, bookings, reviews)
    - Display setup completion summary
 
-5. **Start development server:**
+5. **🔐 Create Test User Passwords:**
+   ```bash
+   node src/scripts/createTestPasswords.js
+   ```
+   
+   This creates working passwords for the test accounts:
+   - `john.smith@eliteproperties.com` / `password123`
+   - `sarah.johnson@eliteproperties.com` / `password123`
+   - `mike.davis@eliteproperties.com` / `password123`
+   - `admin@eliteproperties.com` / `admin123`
+
+6. **Start development server:**
    ```bash
    npm run dev
    ```
 
-6. **Verify installation:**
+7. **Verify installation:**
    - API: http://localhost:5000
    - Health Check: http://localhost:5000/health
    - API Documentation: http://localhost:5000/api
@@ -115,12 +126,28 @@ When you run `npm run setup`, the system creates:
 # Basic database setup - creates tables and populates sample data
 npm run setup
 
+# Create test user passwords for login testing
+node src/scripts/createTestPasswords.js
+
 # Development setup - installs dependencies AND sets up database
 npm run setup-dev
 
 # Check database status
 npm run dev  # Start server and check /health endpoint
 ```
+
+### Test Login Credentials
+
+After running the setup commands, use these credentials for testing:
+
+| Email | Password | Role |
+|-------|----------|------|
+| `john.smith@eliteproperties.com` | `password123` | Senior Real Estate Agent |
+| `sarah.johnson@eliteproperties.com` | `password123` | Property Specialist |
+| `mike.davis@eliteproperties.com` | `password123` | Commercial Broker |
+| `admin@eliteproperties.com` | `admin123` | System Administrator |
+
+> **Important**: Run `node src/scripts/createTestPasswords.js` after database setup to enable login functionality.
 
 ### Database Schema Details
 

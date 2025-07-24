@@ -36,10 +36,28 @@ This document explains how to set up and use the MySQL database for the Elite Pr
    npm run setup
    ```
 
-4. **Start the Server**:
+4. **Create Test User Passwords**:
+   ```bash
+   node src/scripts/createTestPasswords.js
+   ```
+
+5. **Start the Server**:
    ```bash
    npm run dev
    ```
+
+## Test Login Credentials
+
+After setup, you can login with these test accounts:
+
+| Email | Password | Role |
+|-------|----------|------|
+| `john.smith@eliteproperties.com` | `password123` | Senior Real Estate Agent |
+| `sarah.johnson@eliteproperties.com` | `password123` | Property Specialist |
+| `mike.davis@eliteproperties.com` | `password123` | Commercial Broker |
+| `admin@eliteproperties.com` | `admin123` | System Administrator |
+
+> **Note**: These credentials are created by running `node src/scripts/createTestPasswords.js` after the initial database setup.
 
 ## Database Schema
 
@@ -105,7 +123,7 @@ The setup includes sample data:
 
 ## Default Admin Account
 
-After setup, you can create an admin account using the register endpoint. The sample data includes brokers you can reference for testing.
+After setup, you can login using the test credentials listed above. The admin account (`admin@eliteproperties.com` / `admin123`) has full system access.
 
 ## Development Workflow
 
@@ -137,7 +155,7 @@ After setup, you can create an admin account using the register endpoint. The sa
      -H "Content-Type: application/json" \
      -d '{
        "email": "john.smith@eliteproperties.com",
-       "password": "your_password"
+       "password": "password123"
      }'
    ```
 
