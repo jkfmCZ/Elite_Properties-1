@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	calnedarhandler "prop/calendar/calendarhandler"
 	"prop/chat/userinput"
 
 	"github.com/joho/godotenv"
@@ -17,6 +18,7 @@ func main() {
 		log.Fatal("Chyba při načítání .env souboru:", err)
 	}
 
+	calnedarhandler.CalnedarHandler(os.Getenv(("calendarID")))
 	apiKey := os.Getenv("GO_PORT")
 
 	// handle fce

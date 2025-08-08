@@ -1,0 +1,15 @@
+package calnedarhandler
+
+import (
+	"net/http"
+	"prop/calendar/calendarsend"
+	"prop/calendar/calendarshow"
+)
+
+func CalnedarHandler(calendarID string) {
+
+	// insertTask(calendarID)
+	http.HandleFunc("/api/calendar/send", calendarsend.HandleSend)
+	http.HandleFunc("/api/calendar/show", calendarshow.HandleCalendarShow)
+	http.ListenAndServe(":8080", nil)
+}

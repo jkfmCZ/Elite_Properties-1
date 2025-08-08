@@ -1,5 +1,9 @@
 package models
 
+import (
+	"time"
+)
+
 type User struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
@@ -18,4 +22,11 @@ type Message struct {
 
 type Response struct {
 	BotReply string `json:"bot_reply"`
+}
+
+type CalendarPost struct {
+	Cname    string    `json:"cname"`
+	Estart   time.Time `json:"estart"`
+	Eend     time.Time `json:"eend"`
+	Property string    `json:"property"`
 }
