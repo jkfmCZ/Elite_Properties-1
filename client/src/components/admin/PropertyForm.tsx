@@ -7,7 +7,8 @@ import {
   IconBath,
   IconSquare,
   IconCurrencyDollar,
-  IconPlus
+  IconPlus,
+  IconDice
 } from '@tabler/icons-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,8 @@ interface Property {
   bedrooms: number;
   bathrooms: number;
   square_footage: number;
+  lot_size?: number;
+  year_built?: number;
   property_type: string;
   status: 'available' | 'pending' | 'sold';
   published: boolean;
@@ -64,6 +67,8 @@ export function PropertyForm({ property, onSave, onCancel }: PropertyFormProps) 
     bedrooms: 1,
     bathrooms: 1,
     square_footage: 0,
+    lot_size: 0,
+    year_built: new Date().getFullYear(),
     property_type: 'house',
     status: 'available',
     published: true,
@@ -128,12 +133,154 @@ export function PropertyForm({ property, onSave, onCancel }: PropertyFormProps) 
     }));
   };
 
+  const generateRandomData = () => {
+    const propertyTypes = ['house', 'apartment', 'plot', 'commercial', 'land'];
+    const statuses = ['available', 'pending', 'sold'];
+    const cities = ['Austin', 'Houston', 'Dallas', 'San Antonio', 'Fort Worth', 'El Paso'];
+    const states = ['TX', 'CA', 'NY', 'FL', 'IL', 'PA'];
+    const propertyTitles = [
+      'Modern Family Home',
+      'Luxury Downtown Apartment',
+      'Charming Victorian House',
+      'Contemporary Condo',
+      'Spacious Ranch Home',
+      'Urban Loft',
+      'Suburban Paradise',
+      'Elegant Estate',
+      'Cozy Cottage',
+      'Executive Townhome'
+    ];
+    const features = [
+      'hardwood floors', 'granite countertops', 'stainless steel appliances', 
+      'walk-in closet', 'fireplace', 'updated kitchen', 'crown molding',
+      'tile flooring', 'vaulted ceilings', 'bay windows', 'french doors'
+    ];
+    const amenities = [
+      'swimming pool', 'fitness center', 'parking garage', 'garden',
+      'balcony', 'patio', 'rooftop access', 'concierge', 'security system',
+      'central air', 'laundry room', 'storage unit'
+    ];
+    const images = [
+      'https://images.unsplash.com/photo-1568605114967-8130f3a36994',
+      'https://images.unsplash.com/photo-1570129477492-45c003edd2be',
+      'https://images.unsplash.com/photo-1605146769289-440113cc3d00',
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c'
+    ];
+
+    const randomTitle = propertyTitles[Math.floor(Math.random() * propertyTitles.length)];
+    const randomCity = cities[Math.floor(Math.random() * cities.length)];
+    const randomState = states[Math.floor(Math.random() * states.length)];
+    const randomType = propertyTypes[Math.floor(Math.random() * propertyTypes.length)];
+    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)] as 'available' | 'pending' | 'sold';
+    const randomPrice = Math.floor(Math.random() * 1000000) + 200000; // $200K - $1.2M
+    const randomBedrooms = Math.floor(Math.random() * 5) + 1; // 1-5 bedrooms
+    const randomBathrooms = Math.floor(Math.random() * 4) + 1; // 1-4 bathrooms
+    const randomSqft = Math.floor(Math.random() * 3000) + 800; // 800-3800 sqft
+    const randomLotSize = Math.floor(Math.random() * 8000) + 2000; // 2000-10000 sqft
+    const randomYearBuilt = Math.floor(Math.random() * 30) + 1995; // 1995-2024
+    
+    // Random features (2-5)
+    const shuffledFeatures = [...features].sort(() => 0.5 - Math.random());
+    const randomFeatures = shuffledFeatures.slice(0, Math.floor(Math.random() * 4) + 2);
+    
+    // Random amenities (1-4)
+    const shuffledAmenities = [...amenities].sort(() => 0.5 - Math.random());
+    const randomAmenities = shuffledAmenities.slice(0, Math.floor(Math.random() * 4) + 1);
+    
+    const randomImage = images[Math.floor(Math.random() * images.length)];
+
+    setFormData({
+      title: randomTitle,
+      description: `Beautiful ${randomType} featuring ${randomFeatures.slice(0, 3).join(', ')}. Perfect for ${randomBedrooms > 3 ? 'large families' : 'professionals and small families'}. Located in the heart of ${randomCity} with easy access to shopping, dining, and entertainment.`,
+      price: randomPrice,
+      location: `${Math.floor(Math.random() * 9999) + 1000} ${['Main St', 'Oak Ave', 'Pine Dr', 'Elm Way', 'Cedar Ln'][Math.floor(Math.random() * 5)]}`,
+      city: randomCity,
+      state: randomState,
+      zip_code: `${Math.floor(Math.random() * 90000) + 10000}`,
+      bedrooms: randomBedrooms,
+      bathrooms: randomBathrooms,
+      square_footage: randomSqft,
+      lot_size: randomLotSize,
+      year_built: randomYearBuilt,
+      property_type: randomType,
+      status: randomStatus,
+      published: true,
+      features: randomFeatures,
+      amenities: randomAmenities
+    });
+
+    setImageUrl(randomImage);
+
+    toast({
+      title: 'Random Data Generated',
+      description: 'Property form filled with random sample data',
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Basic validation for required fields
+    if (!formData.title.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Property title is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!formData.description.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Property description is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (formData.price <= 0) {
+      toast({
+        title: 'Validation Error',
+        description: 'Property price must be greater than 0',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!formData.location.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Property location is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!formData.property_type.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Property type is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please log in to continue',
+          variant: 'destructive',
+        });
+        window.location.href = '/login';
+        return;
+      }
+
       const url = property 
         ? `http://localhost:5000/api/properties/${property.uuid}`
         : 'http://localhost:5000/api/properties';
@@ -141,12 +288,25 @@ export function PropertyForm({ property, onSave, onCancel }: PropertyFormProps) 
       const method = property ? 'PUT' : 'POST';
 
       const submitData = {
-        ...formData,
-        main_image_url: imageUrl || undefined,
+        title: formData.title,
+        description: formData.description,
         price: Number(formData.price),
+        location: formData.location, // This maps to the backend 'location' field
+        address: formData.location, // Also map to address for consistency
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zip_code,
         bedrooms: Number(formData.bedrooms),
         bathrooms: Number(formData.bathrooms),
-        square_footage: Number(formData.square_footage)
+        squareFootage: Number(formData.square_footage), // Backend expects camelCase
+        lotSize: formData.lot_size ? Number(formData.lot_size) : undefined,
+        yearBuilt: formData.year_built ? Number(formData.year_built) : undefined,
+        propertyType: formData.property_type, // Backend expects camelCase
+        status: formData.status,
+        features: formData.features || [],
+        amenities: formData.amenities || [],
+        mainImageUrl: imageUrl || undefined,
+        published: formData.published
       };
 
       const response = await fetch(url, {
@@ -157,6 +317,18 @@ export function PropertyForm({ property, onSave, onCancel }: PropertyFormProps) 
         },
         body: JSON.stringify(submitData),
       });
+
+      if (response.status === 401 || response.status === 403) {
+        toast({
+          title: 'Session Expired',
+          description: 'Your session has expired. Please log in again.',
+          variant: 'destructive',
+        });
+        localStorage.removeItem('token');
+        localStorage.removeItem('broker');
+        window.location.href = '/login';
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -200,6 +372,17 @@ export function PropertyForm({ property, onSave, onCancel }: PropertyFormProps) 
             </p>
           </div>
         </div>
+        {!property && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={generateRandomData}
+            className="flex items-center space-x-2"
+          >
+            <IconDice size={16} />
+            <span>Generate Sample Data</span>
+          </Button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -404,6 +587,32 @@ export function PropertyForm({ property, onSave, onCancel }: PropertyFormProps) 
                     required
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="lot_size">Lot Size (sq ft)</Label>
+                <Input
+                  id="lot_size"
+                  type="number"
+                  value={formData.lot_size || ''}
+                  onChange={(e) => handleInputChange('lot_size', Number(e.target.value) || undefined)}
+                  placeholder="5000"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="year_built">Year Built</Label>
+                <Input
+                  id="year_built"
+                  type="number"
+                  value={formData.year_built || ''}
+                  onChange={(e) => handleInputChange('year_built', Number(e.target.value) || undefined)}
+                  placeholder="2020"
+                  min="1800"
+                  max={new Date().getFullYear()}
+                />
               </div>
             </div>
           </CardContent>

@@ -13,8 +13,7 @@ import {
 } from '@tabler/icons-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-// Temporarily comment out PropertyManagement to fix circular dependency
-// import { PropertyManagement } from './PropertyManagement';
+import { PropertyManagement } from './PropertyManagement';
 import { useToast } from '@/hooks/use-toast';
 
 interface DashboardStats {
@@ -36,15 +35,44 @@ export function AdminDashboard() {
     fetchDashboardStats();
   }, []);
 
+  // Refresh stats when returning to overview tab
+  useEffect(() => {
+    if (activeTab === 'overview') {
+      fetchDashboardStats();
+    }
+  }, [activeTab]);
+
   const fetchDashboardStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/properties/dashboard/my-properties', {
+      if (!token) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please log in to access the admin panel',
+          variant: 'destructive',
+        });
+        window.location.href = '/login';
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/properties/dashboard/my-properties?published=true', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
+
+      if (response.status === 401 || response.status === 403) {
+        toast({
+          title: 'Session Expired',
+          description: 'Your session has expired. Please log in again.',
+          variant: 'destructive',
+        });
+        localStorage.removeItem('token');
+        localStorage.removeItem('broker');
+        window.location.href = '/login';
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -67,12 +95,14 @@ export function AdminDashboard() {
             totalBookings
           });
         }
+      } else {
+        throw new Error('Failed to fetch properties');
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load dashboard statistics',
+        description: 'Failed to load dashboard statistics. Please check your connection.',
         variant: 'destructive',
       });
     } finally {
@@ -291,16 +321,7 @@ export function AdminDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card>
-              <CardHeader>
-                <CardTitle>Property Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Property management functionality will be implemented here.
-                </p>
-              </CardContent>
-            </Card>
+            <PropertyManagement />
           </motion.div>
         )}
 
@@ -310,16 +331,63 @@ export function AdminDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card>
-              <CardHeader>
-                <CardTitle>Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Analytics dashboard coming soon...
-                </p>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Property Performance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Views This Month</span>
+                      <span className="text-lg font-bold text-blue-600">
+                        {stats?.monthlyViews || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Bookings This Month</span>
+                      <span className="text-lg font-bold text-green-600">
+                        {stats?.totalBookings || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Average Property Value</span>
+                      <span className="text-lg font-bold text-purple-600">
+                        {stats ? formatCurrency(stats.totalValue / Math.max(stats.totalProperties, 1)) : '$0'}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Property Status Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-green-600">Available</span>
+                      <span className="text-lg font-bold">
+                        {stats?.availableProperties || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-red-600">Sold</span>
+                      <span className="text-lg font-bold">
+                        {stats?.soldProperties || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-blue-600">Total Portfolio Value</span>
+                      <span className="text-lg font-bold">
+                        {stats ? formatCurrency(stats.totalValue) : '$0'}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </motion.div>
         )}
 
@@ -329,16 +397,79 @@ export function AdminDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card>
-              <CardHeader>
-                <CardTitle>Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Settings panel coming soon...
-                </p>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Account Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Broker ID
+                      </label>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {localStorage.getItem('broker') ? JSON.parse(localStorage.getItem('broker')!).id : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Email
+                      </label>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {localStorage.getItem('broker') ? JSON.parse(localStorage.getItem('broker')!).email : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Name
+                      </label>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {localStorage.getItem('broker') ? JSON.parse(localStorage.getItem('broker')!).name : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('broker');
+                        window.location.href = '/login';
+                      }}
+                    >
+                      <IconSettings size={16} className="mr-2" />
+                      Logout
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => setActiveTab('properties')}
+                    >
+                      <IconBuilding size={16} className="mr-2" />
+                      Manage Properties
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => setActiveTab('analytics')}
+                    >
+                      <IconChartBar size={16} className="mr-2" />
+                      View Analytics
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </motion.div>
         )}
       </div>

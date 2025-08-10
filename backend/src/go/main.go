@@ -18,7 +18,7 @@ func main() {
 		log.Fatal("Chyba při načítání .env souboru:", err)
 	}
 
-	calnedarhandler.CalnedarHandler(os.Getenv(("calendarID")))
+	// calnedarhandler.CalnedarHandler(os.Getenv(("calendarID")))
 	apiKey := os.Getenv("GO_PORT")
 
 	// handle fce

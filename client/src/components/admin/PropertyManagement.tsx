@@ -4,7 +4,6 @@ import {
   IconPlus, 
   IconEdit, 
   IconTrash, 
-  IconEye, 
   IconSearch,
   IconFilter,
   IconChevronDown,
@@ -34,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-// import { PropertyForm } from './PropertyForm';
+import { PropertyForm } from './PropertyForm';
 import { useToast } from '@/hooks/use-toast';
 
 interface Property {
@@ -82,17 +81,36 @@ export function PropertyManagement() {
   const fetchProperties = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/properties/dashboard/my-properties', {
+      
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/properties/dashboard/my-properties?published=true', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
 
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('token');
+        toast({
+          title: 'Session Expired',
+          description: 'Your session has expired. Please log in again.',
+          variant: 'destructive',
+        });
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setProperties(data.data);
+          setProperties(data.data || []);
         }
       } else {
         throw new Error('Failed to fetch properties');
@@ -110,11 +128,11 @@ export function PropertyManagement() {
   };
 
   const filterProperties = () => {
-    let filtered = properties;
+    let filtered = [...properties];
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(property =>
+      filtered = filtered.filter((property: Property) =>
         property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         property.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
         property.city.toLowerCase().includes(searchTerm.toLowerCase())
@@ -123,12 +141,12 @@ export function PropertyManagement() {
 
     // Status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(property => property.status === statusFilter);
+      filtered = filtered.filter((property: Property) => property.status === statusFilter);
     }
 
     // Type filter
     if (typeFilter !== 'all') {
-      filtered = filtered.filter(property => property.property_type === typeFilter);
+      filtered = filtered.filter((property: Property) => property.property_type === typeFilter);
     }
 
     setFilteredProperties(filtered);
@@ -137,6 +155,12 @@ export function PropertyManagement() {
   const handleDelete = async (property: Property) => {
     try {
       const token = localStorage.getItem('token');
+      
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+
       const response = await fetch(`http://localhost:5000/api/properties/${property.uuid}`, {
         method: 'DELETE',
         headers: {
@@ -145,14 +169,28 @@ export function PropertyManagement() {
         },
       });
 
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('token');
+        toast({
+          title: 'Session Expired',
+          description: 'Your session has expired. Please log in again.',
+          variant: 'destructive',
+        });
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+        return;
+      }
+
       if (response.ok) {
-        setProperties(properties.filter(p => p.id !== property.id));
+        setProperties(properties.filter((p: Property) => p.uuid !== property.uuid));
         toast({
           title: 'Success',
           description: 'Property deleted successfully',
         });
       } else {
-        throw new Error('Failed to delete property');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete property');
       }
     } catch (error) {
       console.error('Error deleting property:', error);
@@ -171,6 +209,11 @@ export function PropertyManagement() {
     fetchProperties();
   };
 
+  const handleEdit = (property: Property) => {
+    setEditingProperty(property);
+    setShowForm(true);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -186,33 +229,19 @@ export function PropertyManagement() {
       pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
       sold: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[status as keyof typeof colors] || colors.available;
   };
 
   if (showForm) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => {
-              setShowForm(false);
-              setEditingProperty(null);
-            }}
-          >
-            ← Back
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {editingProperty ? 'Edit Property' : 'Add New Property'}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300">
-              Property form will be implemented here
-            </p>
-          </div>
-        </div>
-      </div>
+      <PropertyForm 
+        property={editingProperty} 
+        onSave={handlePropertySaved}
+        onCancel={() => {
+          setShowForm(false);
+          setEditingProperty(null);
+        }}
+      />
     );
   }
 
@@ -253,15 +282,15 @@ export function PropertyManagement() {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center space-x-2">
-                  <IconFilter size={16} />
-                  <span>Status: {statusFilter === 'all' ? 'All' : statusFilter}</span>
-                  <IconChevronDown size={16} />
+                <Button variant="outline">
+                  <IconFilter size={16} className="mr-2" />
+                  Status: {statusFilter === 'all' ? 'All' : statusFilter}
+                  <IconChevronDown size={16} className="ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem onClick={() => setStatusFilter('all')}>
-                  All Status
+                  All
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setStatusFilter('available')}>
                   Available
@@ -277,15 +306,15 @@ export function PropertyManagement() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center space-x-2">
-                  <IconFilter size={16} />
-                  <span>Type: {typeFilter === 'all' ? 'All' : typeFilter}</span>
-                  <IconChevronDown size={16} />
+                <Button variant="outline">
+                  <IconFilter size={16} className="mr-2" />
+                  Type: {typeFilter === 'all' ? 'All' : typeFilter}
+                  <IconChevronDown size={16} className="ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem onClick={() => setTypeFilter('all')}>
-                  All Types
+                  All
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTypeFilter('house')}>
                   House
@@ -305,25 +334,24 @@ export function PropertyManagement() {
         </CardContent>
       </Card>
 
-      {/* Properties Grid */}
+      {/* Loading State */}
       {isLoading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
-          <p className="mt-2 text-gray-600 dark:text-gray-300">Loading properties...</p>
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : filteredProperties.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <div className="text-gray-400 mb-4">
-              <IconMapPin size={48} className="mx-auto" />
+              <IconPlus size={48} className="mx-auto" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               No properties found
             </h3>
             <p className="text-gray-600 dark:text-gray-300 mb-4">
               {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
-                ? 'Try adjusting your filters to see more properties.'
-                : 'Get started by adding your first property.'}
+                ? 'Try adjusting your search filters'
+                : 'Get started by adding your first property'}
             </p>
             <Button onClick={() => setShowForm(true)}>
               Add Property
@@ -331,6 +359,7 @@ export function PropertyManagement() {
           </CardContent>
         </Card>
       ) : (
+        /* Properties Grid */
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredProperties.map((property) => (
             <motion.div
@@ -353,90 +382,66 @@ export function PropertyManagement() {
                       <IconMapPin size={48} className="text-gray-400" />
                     </div>
                   )}
-                  <div className="absolute top-3 left-3">
+                  
+                  {/* Status Badge */}
+                  <div className="absolute top-2 left-2">
                     <Badge className={getStatusBadge(property.status)}>
-                      {property.status}
+                      {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
                     </Badge>
                   </div>
-                  {!property.published && (
-                    <div className="absolute top-3 right-3">
-                      <Badge variant="secondary">Draft</Badge>
-                    </div>
-                  )}
+
+                  {/* Actions */}
+                  <div className="absolute top-2 right-2 flex space-x-1">
+                    <Button size="sm" variant="secondary" onClick={() => handleEdit(property)}>
+                      <IconEdit size={16} />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive" 
+                      onClick={() => setDeleteProperty(property)}
+                    >
+                      <IconTrash size={16} />
+                    </Button>
+                  </div>
                 </div>
 
+                {/* Property Details */}
                 <CardContent className="p-4">
-                  <div className="space-y-3">
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-1">
-                        {property.title}
-                      </h3>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 mt-1">
-                        <IconMapPin size={14} className="mr-1" />
-                        <span className="line-clamp-1">{property.location}, {property.city}</span>
-                      </div>
-                    </div>
+                  <div className="mb-2">
+                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white truncate">
+                      {property.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                      <IconMapPin size={14} className="mr-1" />
+                      {property.city}, {property.state}
+                    </p>
+                  </div>
 
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center">
-                          <IconBed size={14} className="mr-1 text-gray-400" />
-                          <span>{property.bedrooms}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <IconBath size={14} className="mr-1 text-gray-400" />
-                          <span>{property.bathrooms}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <IconSquare size={14} className="mr-1 text-gray-400" />
-                          <span>{property.square_footage?.toLocaleString()}</span>
-                        </div>
-                      </div>
+                  <div className="mb-3">
+                    <div className="flex items-center text-lg font-bold text-blue-600 dark:text-blue-400">
+                      <IconCurrencyDollar size={18} />
+                      {formatCurrency(property.price)}
                     </div>
+                  </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <IconCurrencyDollar size={16} className="text-green-600 dark:text-green-400" />
-                        <span className="font-bold text-lg text-green-600 dark:text-green-400">
-                          {formatCurrency(property.price)}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {property.booking_count || 0} bookings
-                      </div>
+                  {/* Property Stats */}
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    <div className="flex items-center">
+                      <IconBed size={14} className="mr-1" />
+                      {property.bedrooms} bed
                     </div>
+                    <div className="flex items-center">
+                      <IconBath size={14} className="mr-1" />
+                      {property.bathrooms} bath
+                    </div>
+                    <div className="flex items-center">
+                      <IconSquare size={14} className="mr-1" />
+                      {property.square_footage.toLocaleString()} sqft
+                    </div>
+                  </div>
 
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => window.open(`/property/${property.uuid}`, '_blank')}
-                        className="flex-1"
-                      >
-                        <IconEye size={14} className="mr-1" />
-                        View
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingProperty(property);
-                          setShowForm(true);
-                        }}
-                        className="flex-1"
-                      >
-                        <IconEdit size={14} className="mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setDeleteProperty(property)}
-                        className="text-red-600 hover:text-red-700 dark:text-red-400"
-                      >
-                        <IconTrash size={14} />
-                      </Button>
-                    </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Created: {new Date(property.created_at).toLocaleDateString()}
                   </div>
                 </CardContent>
               </Card>
@@ -456,9 +461,9 @@ export function PropertyManagement() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogAction 
               onClick={() => deleteProperty && handleDelete(deleteProperty)}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700"
             >
               Delete
             </AlertDialogAction>
