@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { 
   IconHome, 
   IconBuilding, 
-  IconMessageChatbot, 
+  IconMessageChatbot,
+  IconCalendar,
   IconMoon, 
   IconSun,
   IconLogin,
@@ -38,6 +39,7 @@ export function Navigation() {
   const navItems = [
     { path: '/', label: 'Home', icon: IconHome },
     { path: '/properties', label: 'Properties', icon: IconBuilding },
+    { path: '/calendar', label: 'Calendar', icon: IconCalendar },
     { path: '/chat', label: 'Chat', icon: IconMessageChatbot },
     ...(isAuthenticated ? [{ path: '/admin', label: 'Admin Panel', icon: IconSettings }] : [])
   ];

@@ -4,6 +4,7 @@ import { HomePage } from './components/HomePage';
 import { PropertiesPage } from './components/PropertiesPage';
 import { PropertiesPageSimple } from './components/PropertiesPageSimple';
 import { ChatPage } from './components/ChatPage';
+import { CalendarPage } from './components/CalendarPage';
 import { PropertyDetailPage } from './components/PropertyDetailPage';
 import { LoginPage } from './components/LoginPage';
 import { NotFoundPage } from './components/NotFoundPage';
@@ -31,6 +32,7 @@ function App() {
                   <Route path="/" element={<HomePage />} />
                   <Route path="/properties" element={<PropertiesPage />} />
                   <Route path="/property/:id" element={<PropertyDetailPage />} />
+                  <Route path="/calendar" element={<CalendarPage />} />
                   <Route path="/chat" element={<ChatPage />} />
                   <Route path="/admin" element={
                     <ProtectedRoute requireAuth={true}>
