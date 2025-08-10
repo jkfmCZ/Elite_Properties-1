@@ -1,4 +1,4 @@
-package calnedarhandler
+package calendarhandler
 
 import (
 	"net/http"

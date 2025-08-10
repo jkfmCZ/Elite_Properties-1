@@ -15,8 +15,9 @@ import (
 )
 
 func HandleCalendarShow(w http.ResponseWriter, r *http.Request) {
-	calendarID := os.Getenv("calendarID")
 
+	calendarID := os.Getenv("calendarID")
+	fmt.Print(calendarID)
 	events, err := getCalendarEvents(calendarID)
 	if err != nil {
 		http.Error(w, "Chyba při získávání událostí: "+err.Error(), http.StatusInternalServerError)
@@ -30,7 +31,7 @@ func HandleCalendarShow(w http.ResponseWriter, r *http.Request) {
 func getCalendarEvents(calendarId string) ([]models.CalendarPost, error) {
 	ctx := context.Background()
 
-	serviceAccountFile := "credentials.json"
+	serviceAccountFile := "calendar/credentials.json"
 
 	data, err := os.ReadFile(serviceAccountFile)
 	if err != nil {

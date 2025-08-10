@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	calnedarhandler "prop/calendar/calendarhandler"
+	"prop/calendar/calendarhandler"
 	"prop/chat/userinput"
 
 	"github.com/joho/godotenv"
@@ -22,6 +22,8 @@ func main() {
 	apiKey := os.Getenv("GO_PORT")
 
 	// handle fce
+	calendarID := os.Getenv("calendarID")
+	calendarhandler.CalnedarHandler(calendarID)
 
 	http.HandleFunc("/api/chat", userinput.HandleINP)
 	http.ListenAndServe(":"+apiKey, nil)

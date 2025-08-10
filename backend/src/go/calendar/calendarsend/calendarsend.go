@@ -37,8 +37,12 @@ func HandleSend(w http.ResponseWriter, r *http.Request) {
 
 func insertTask(sumary string, location string, eventStart time.Time, eventEnd time.Time) {
 	calendarId := os.Getenv("calendarID")
+	if calendarId == "" {
+		log.Fatalf("Proměnná calendarID není nastavena v prostředí")
+	}
+
 	ctx := context.Background()
-	serviceAccountFile := "../credentials.json"
+	serviceAccountFile := "calendar/credentials.json"
 
 	srv, err := calendar.NewService(ctx, option.WithCredentialsFile(serviceAccountFile), option.WithScopes(calendar.CalendarScope))
 	if err != nil {
