@@ -29,14 +29,29 @@ export function PropertiesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [propertyType, setPropertyType] = useState<string>('all');
   const [priceRange, setPriceRange] = useState<string>('all');
+  const [brokerFilter, setBrokerFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('price-asc');
   const [loading, setLoading] = useState(false);
+  const [brokers, setBrokers] = useState<any[]>([]);
   
   // Computed values
   const isUsingMockData = !useDbData;
 
+  // Fetch brokers from database
+  const fetchBrokers = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/properties/brokers');
+      const result = await response.json();
+      if (result.success) {
+        setBrokers(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch brokers:', error);
+    }
+  };
+
   // Fetch properties from database
-  const fetchDbProperties = async (currentFilters?: { type?: string; search?: string; minPrice?: number; maxPrice?: number }) => {
+  const fetchDbProperties = async (currentFilters?: { type?: string; search?: string; minPrice?: number; maxPrice?: number; broker?: string }) => {
     setLoading(true);
     try {
       const filters: any = {};
@@ -53,6 +68,9 @@ export function PropertiesPage() {
       }
       if (currentFilters?.maxPrice) {
         filters.maxPrice = currentFilters.maxPrice;
+      }
+      if (currentFilters?.broker && currentFilters.broker !== 'all') {
+        filters.broker = currentFilters.broker;
       }
       
       const dbProperties = await propertyService.getProperties(filters);
@@ -83,6 +101,7 @@ export function PropertiesPage() {
       const currentFilters = {
         type: propertyType,
         search: searchTerm,
+        broker: brokerFilter,
         ...(priceRange !== 'all' && priceRange.includes('-') ? {
           minPrice: parseInt(priceRange.split('-')[0]),
           maxPrice: parseInt(priceRange.split('-')[1])
@@ -95,6 +114,8 @@ export function PropertiesPage() {
       // Switching to mock data
       setUseDbData(false);
       setProperties(mockProperties);
+      setBrokers([]); // Clear brokers when switching to mock data
+      setBrokerFilter('all'); // Reset broker filter
       toast({
         title: "Switched to Mock Data",
         description: "Now using demo data for offline browsing",
@@ -104,8 +125,15 @@ export function PropertiesPage() {
 
   // Apply sorting and filtering whenever any filter changes or data loads
   useEffect(() => {
-    filterProperties(searchTerm, propertyType, priceRange);
-  }, [searchTerm, propertyType, priceRange, sortBy, properties]);
+    filterProperties(searchTerm, propertyType, priceRange, brokerFilter);
+  }, [searchTerm, propertyType, priceRange, brokerFilter, sortBy, properties]);
+
+  // Fetch brokers when using database data
+  useEffect(() => {
+    if (useDbData) {
+      fetchBrokers();
+    }
+  }, [useDbData]);
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
@@ -119,6 +147,10 @@ export function PropertiesPage() {
     setPriceRange(range);
   };
 
+  const handleBrokerFilter = (broker: string) => {
+    setBrokerFilter(broker);
+  };
+
   const handleSortChange = (sort: string) => {
     setSortBy(sort);
   };
@@ -127,11 +159,12 @@ export function PropertiesPage() {
     setSearchTerm('');
     setPropertyType('all');
     setPriceRange('all');
+    setBrokerFilter('all');
     setSortBy('price-asc');
   };
 
-  const filterProperties = (term: string, type: string, range: string) => {
-    console.log('Filtering with:', { term, type, range });
+  const filterProperties = (term: string, type: string, range: string, broker: string) => {
+    console.log('Filtering with:', { term, type, range, broker });
     let filtered = properties;
 
     // Search filter
@@ -146,6 +179,21 @@ export function PropertiesPage() {
     // Type filter
     if (type !== 'all') {
       filtered = filtered.filter((property: Property) => property.type === type);
+    }
+
+    // Broker filter
+    if (broker !== 'all') {
+      filtered = filtered.filter((property: Property) => {
+        // For database data, check broker_id or broker_name
+        if ((property as any).broker_id) {
+          return (property as any).broker_id.toString() === broker;
+        }
+        // For mock data, we can filter by broker name if available
+        if ((property as any).broker_name) {
+          return (property as any).broker_name === broker;
+        }
+        return true;
+      });
     }
 
     // Price filter
@@ -192,6 +240,7 @@ export function PropertiesPage() {
       const currentFilters = {
         type: propertyType,
         search: searchTerm,
+        broker: brokerFilter,
         ...(priceRange !== 'all' && priceRange.includes('-') ? {
           minPrice: parseInt(priceRange.split('-')[0]),
           maxPrice: parseInt(priceRange.split('-')[1])
@@ -313,7 +362,7 @@ export function PropertiesPage() {
           >
             <Card>
               <CardContent className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4">
                   {/* Search */}
                   <div className="relative sm:col-span-2 lg:col-span-2">
                     <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -335,6 +384,21 @@ export function PropertiesPage() {
                       <SelectItem value="house">Houses</SelectItem>
                       <SelectItem value="apartment">Apartments</SelectItem>
                       <SelectItem value="plot">Plots</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Broker Filter */}
+                  <Select value={brokerFilter} onValueChange={handleBrokerFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Broker" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Brokers</SelectItem>
+                      {brokers.map((broker) => (
+                        <SelectItem key={broker.id} value={broker.id.toString()}>
+                          {broker.name} ({broker.property_count})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
 
