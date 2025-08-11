@@ -18,22 +18,79 @@ import {
   IconList,
   IconCalendarEvent,
   IconEdit,
-  IconTrash
+  IconTrash,
+  IconAlertTriangle
 } from '@tabler/icons-react';
-import { Button } from '@/components/ui/button';
-import { BookingService, type Booking, type BookingFormData } from '@/services/bookingService';
+
+// TypeScript interfaces matching your Go API
+interface CalendarEvent {
+  cname: string;
+  estart: string; // ISO date string from Go
+  eend: string;   // ISO date string from Go
+  property: string;
+}
+
+interface BookingFormData {
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  preferredDate: string;
+  preferredTime: string;
+  preferredLocation: string;
+  message: string;
+}
+
+// API Service for your Go backend
+const CalendarAPI = {
+  // Get events from your Go API
+  async getEvents(): Promise<CalendarEvent[]> {
+    try {
+      const response = await fetch('http://localhost:8080/api/calendar/show');
+      if (!response.ok) throw new Error('Failed to fetch events');
+      const data = await response.json();
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      return [];
+    }
+  },
+
+  // Send new booking to your Go API
+  async createBooking(bookingData: BookingFormData): Promise<boolean> {
+    try {
+      const response = await fetch('http://localhost:8080/api/calendar/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cname: bookingData.clientName,
+          estart: new Date(bookingData.preferredDate + 'T' + bookingData.preferredTime + ':00'),
+          eend: new Date(new Date(bookingData.preferredDate + 'T' + bookingData.preferredTime + ':00').getTime() + 60 * 60 * 1000), // +1 hour
+          property: bookingData.preferredLocation
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to create booking');
+      return true;
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      throw error;
+    }
+  }
+};
 
 export function CalendarPage() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [conflicts, setConflicts] = useState<CalendarEvent[]>([]);
   const [formData, setFormData] = useState<BookingFormData>({
     clientName: '',
     clientEmail: '',
@@ -45,21 +102,37 @@ export function CalendarPage() {
   });
 
   useEffect(() => {
-    console.log('CalendarPage mounted, fetching bookings...');
-    fetchBookings();
+    fetchEvents();
   }, []);
 
-  const fetchBookings = async () => {
+  const fetchEvents = async () => {
     setLoading(true);
     try {
-      const data = await BookingService.getAllBookings();
-      console.log('Fetched bookings data:', data);
-      setBookings(data);
+      const data = await CalendarAPI.getEvents();
+      console.log('Fetched events:', data);
+      setEvents(data);
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      console.error('Error fetching events:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Check for booking conflicts
+  const checkConflicts = (date: string, time: string): boolean => {
+    const bookingDateTime = new Date(date + 'T' + time + ':00');
+    const bookingEnd = new Date(bookingDateTime.getTime() + 60 * 60 * 1000); // +1 hour
+    
+    const conflictingEvents = events.filter((event: CalendarEvent) => {
+      const eventStart = new Date(event.estart);
+      const eventEnd = new Date(event.eend);
+      
+      // Check if times overlap
+      return (bookingDateTime < eventEnd && bookingEnd > eventStart);
+    });
+    
+    setConflicts(conflictingEvents);
+    return conflictingEvents.length > 0;
   };
 
   const generateRandomBooking = () => {
@@ -92,21 +165,39 @@ export function CalendarPage() {
     });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+
+    // Check for conflicts when date or time changes
+    if (name === 'preferredDate' || name === 'preferredTime') {
+      const date = name === 'preferredDate' ? value : formData.preferredDate;
+      const time = name === 'preferredTime' ? value : formData.preferredTime;
+      
+      if (date && time) {
+        checkConflicts(date, time);
+      }
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Final conflict check
+    const hasConflicts = checkConflicts(formData.preferredDate, formData.preferredTime);
+    if (hasConflicts) {
+      setSubmitStatus('error');
+      return;
+    }
+
     setSubmitting(true);
     setSubmitStatus('idle');
 
     try {
-      await BookingService.createBooking(formData);
+      await CalendarAPI.createBooking(formData);
       setSubmitStatus('success');
       setFormData({
         clientName: '',
@@ -117,7 +208,8 @@ export function CalendarPage() {
         preferredLocation: '',
         message: ''
       });
-      fetchBookings();
+      setConflicts([]);
+      fetchEvents(); // Refresh events
       setTimeout(() => setSubmitStatus('idle'), 3000);
     } catch (error) {
       console.error('Error creating booking:', error);
@@ -127,13 +219,13 @@ export function CalendarPage() {
     }
   };
 
-  const handleBookingClick = (booking: Booking) => {
-    setSelectedBooking(booking);
+  const handleEventClick = (event: CalendarEvent) => {
+    setSelectedEvent(event);
     setShowDetail(true);
   };
 
   const handleCloseDetail = () => {
-    setSelectedBooking(null);
+    setSelectedEvent(null);
     setShowDetail(false);
   };
 
@@ -149,6 +241,7 @@ export function CalendarPage() {
       message: ''
     });
     setSubmitStatus('idle');
+    setConflicts([]);
   };
 
   const generateCalendarDays = () => {
@@ -161,13 +254,14 @@ export function CalendarPage() {
     const currentDate = new Date(startDate);
     
     for (let i = 0; i < 42; i++) {
-      const dayBookings = bookings.filter(booking => 
-        booking.preferredDate === currentDate.toISOString().split('T')[0]
-      );
+      const dayEvents = events.filter((event: CalendarEvent) => {
+        const eventDate = new Date(event.estart);
+        return eventDate.toDateString() === currentDate.toDateString();
+      });
       
       days.push({
         date: new Date(currentDate),
-        bookings: dayBookings,
+        events: dayEvents,
         isCurrentMonth: currentDate.getMonth() === today.getMonth(),
         isToday: currentDate.toDateString() === today.toDateString()
       });
@@ -178,55 +272,26 @@ export function CalendarPage() {
     return days;
   };
 
-  // Simple filtering without complex logic for debugging
-  let filteredBookings = bookings;
-  
-  // Apply status filter
-  if (statusFilter !== 'all') {
-    filteredBookings = BookingService.filterBookingsByStatus(filteredBookings, statusFilter);
-  }
-  
-  // Apply date filter
+  // Filter events by selected date
+  let filteredEvents: CalendarEvent[] = events;
   if (selectedDate) {
-    filteredBookings = BookingService.getBookingsForDate(filteredBookings, selectedDate);
+    filteredEvents = events.filter((event: CalendarEvent) => {
+      const eventDate = new Date(event.estart);
+      return eventDate.toISOString().split('T')[0] === selectedDate;
+    });
   }
 
-  // Debug logging
-  console.log('Raw bookings:', bookings);
-  console.log('Selected date:', selectedDate);
-  console.log('Status filter:', statusFilter);
-  console.log('Filtered bookings:', filteredBookings);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'pending': return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'cancelled': return 'bg-rose-100 text-rose-800 border-rose-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'confirmed': return <IconCheck className="h-4 w-4" />;
-      case 'pending': return <IconClock className="h-4 w-4" />;
-      case 'cancelled': return <IconX className="h-4 w-4" />;
-      default: return <IconClock className="h-4 w-4" />;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'Potvrzeno';
-      case 'pending': return 'Čekající';
-      case 'cancelled': return 'Zrušeno';
-      default: return 'Neznámý';
-    }
+  const formatDateTime = (dateTime: string) => {
+    const date = new Date(dateTime);
+    return {
+      date: date.toLocaleDateString('cs-CZ'),
+      time: date.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+    };
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
-      {/* Enhanced Background Elements */}
+      {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-violet-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
@@ -249,51 +314,47 @@ export function CalendarPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button
+              <button
                 onClick={generateRandomBooking}
-                variant="outline"
-                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 px-4 py-2 rounded-xl flex items-center gap-2"
               >
-                <IconTestPipe className="h-4 w-4 mr-2" />
+                <IconTestPipe className="h-4 w-4" />
                 Test Data
-              </Button>
+              </button>
               
-              <Button
+              <button
                 onClick={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
-                variant="outline"
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 px-4 py-2 rounded-xl flex items-center gap-2"
               >
                 {viewMode === 'list' ? (
                   <>
-                    <IconCalendarEvent className="h-4 w-4 mr-2" />
+                    <IconCalendarEvent className="h-4 w-4" />
                     Kalendář
                   </>
                 ) : (
                   <>
-                    <IconList className="h-4 w-4 mr-2" />
+                    <IconList className="h-4 w-4" />
                     Seznam
                   </>
                 )}
-              </Button>
+              </button>
               
-              <Button
+              <button
                 onClick={() => setShowForm(!showForm)}
-                variant="outline"
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 hover:from-emerald-600 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 hover:from-emerald-600 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 px-4 py-2 rounded-xl flex items-center gap-2"
               >
-                <IconPlus className="h-4 w-4 mr-2" />
+                <IconPlus className="h-4 w-4" />
                 Nová rezervace
-              </Button>
+              </button>
               
-              <Button
-                onClick={fetchBookings}
+              <button
+                onClick={fetchEvents}
                 disabled={loading}
-                variant="outline"
-                className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 px-4 py-2 rounded-xl flex items-center gap-2"
               >
-                <IconRefresh className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <IconRefresh className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Obnovit
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -308,14 +369,12 @@ export function CalendarPage() {
                     <IconSparkles className="h-5 w-5 text-violet-600" />
                     <h2 className="text-xl font-semibold text-gray-800">Nová rezervace</h2>
                   </div>
-                  <Button
+                  <button
                     onClick={handleCloseForm}
-                    variant="outline"
-                    size="sm"
-                    className="hover:bg-gray-50"
+                    className="hover:bg-gray-50 p-2 rounded-lg"
                   >
                     <IconX className="h-4 w-4" />
-                  </Button>
+                  </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -393,6 +452,24 @@ export function CalendarPage() {
                     </div>
                   </div>
 
+                  {/* Conflict Warning */}
+                  {conflicts.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                      <div className="flex items-center gap-2 text-red-800 mb-2">
+                        <IconAlertTriangle className="h-4 w-4" />
+                        <span className="font-medium">Časový konflikt!</span>
+                      </div>
+                      <p className="text-sm text-red-700 mb-2">
+                        Na tento čas již máte naplánované schůzky:
+                      </p>
+                      {conflicts.map((conflict, index) => (
+                        <div key={index} className="text-sm text-red-600 bg-red-100 p-2 rounded mb-1">
+                          {conflict.cname} - {formatDateTime(conflict.estart).time} - {formatDateTime(conflict.eend).time}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Nemovitost/Místo
@@ -422,23 +499,28 @@ export function CalendarPage() {
                     />
                   </div>
 
-                  <Button
+                  <button
                     type="submit"
-                    disabled={submitting}
-                    className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white h-12 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:hover:scale-100"
+                    disabled={submitting || conflicts.length > 0}
+                    className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white h-12 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:hover:scale-100 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {submitting ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                         Rezervuji...
+                      </>
+                    ) : conflicts.length > 0 ? (
+                      <>
+                        <IconX className="h-4 w-4" />
+                        Konflikt - nelze rezervovat
                       </>
                     ) : (
                       <>
-                        <IconPlus className="h-4 w-4 mr-2" />
+                        <IconPlus className="h-4 w-4" />
                         Vytvořit rezervaci
                       </>
                     )}
-                  </Button>
+                  </button>
 
                   {submitStatus === 'success' && (
                     <div className="flex items-center gap-2 text-emerald-600 text-sm bg-emerald-50 p-3 rounded-xl">
@@ -450,7 +532,12 @@ export function CalendarPage() {
                   {submitStatus === 'error' && (
                     <div className="flex items-center gap-2 text-rose-600 text-sm bg-rose-50 p-3 rounded-xl">
                       <IconX className="h-4 w-4" />
-                      <span>Chyba při vytváření rezervace</span>
+                      <span>
+                        {conflicts.length > 0 
+                          ? 'Nelze rezervovat - časový konflikt!' 
+                          : 'Chyba při vytváření rezervace'
+                        }
+                      </span>
                     </div>
                   )}
                 </form>
@@ -458,7 +545,7 @@ export function CalendarPage() {
             </div>
           )}
 
-          {/* Bookings Display */}
+          {/* Events Display */}
           <div className={showForm ? "lg:col-span-2" : "lg:col-span-3"}>
             <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6">
               {/* Filters */}
@@ -466,20 +553,10 @@ export function CalendarPage() {
                 <div className="flex items-center gap-2">
                   <IconFilter className="h-5 w-5 text-violet-600" />
                   <h2 className="text-xl font-semibold text-gray-800">
-                    {viewMode === 'calendar' ? 'Kalendář rezervací' : `Rezervace (${filteredBookings.length})`}
+                    {viewMode === 'calendar' ? 'Kalendář rezervací' : `Události (${filteredEvents.length})`}
                   </h2>
                 </div>
                 <div className="flex gap-2">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="border-2 border-gray-200 rounded-xl px-4 py-2 focus:border-violet-500 focus:outline-none bg-white/80"
-                  >
-                    <option value="all">Všechny</option>
-                    <option value="pending">Čekající</option>
-                    <option value="confirmed">Potvrzené</option>
-                    <option value="cancelled">Zrušené</option>
-                  </select>
                   {viewMode === 'list' && (
                     <input
                       type="date"
@@ -512,28 +589,28 @@ export function CalendarPage() {
                             : 'bg-white border-gray-200 hover:bg-gray-50'
                           : 'bg-gray-50 border-gray-100 text-gray-400'
                       }`}
-                      onClick={() => day.bookings.length > 0 && setSelectedDate(day.date.toISOString().split('T')[0])}
+                      onClick={() => day.events.length > 0 && setSelectedDate(day.date.toISOString().split('T')[0])}
                     >
                       <div className="text-sm font-medium mb-1">
                         {day.date.getDate()}
                       </div>
-                      {day.bookings.length > 0 && (
+                      {day.events.length > 0 && (
                         <div className="space-y-1">
-                          {day.bookings.slice(0, 2).map((booking) => (
+                          {day.events.slice(0, 2).map((event: CalendarEvent) => (
                             <div
-                              key={booking.id}
-                              className={`text-xs p-1 rounded truncate cursor-pointer ${getStatusColor(booking.status)}`}
-                              onClick={(e) => {
+                              key={event.cname + event.estart}
+                              className="text-xs p-1 rounded truncate cursor-pointer bg-violet-100 text-violet-800 border border-violet-200"
+                              onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation();
-                                handleBookingClick(booking);
+                                handleEventClick(event);
                               }}
                             >
-                              {booking.clientName}
+                              {event.cname}
                             </div>
                           ))}
-                          {day.bookings.length > 2 && (
+                          {day.events.length > 2 && (
                             <div className="text-xs text-gray-500">
-                              +{day.bookings.length - 2} další
+                              +{day.events.length - 2} další
                             </div>
                           )}
                         </div>
@@ -551,70 +628,57 @@ export function CalendarPage() {
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
                       <span className="ml-2 text-gray-600">Načítání...</span>
                     </div>
-                  ) : filteredBookings.length === 0 ? (
+                  ) : filteredEvents.length === 0 ? (
                     <div className="text-center py-12">
                       <IconCalendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">Žádné rezervace nebyly nalezeny</p>
+                      <p className="text-gray-500">Žádné události nebyly nalezeny</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {filteredBookings.map((booking) => (
-                        <div
-                          key={booking.id}
-                          className="bg-gradient-to-r from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-200/50 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer"
-                          onClick={() => handleBookingClick(booking)}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <IconUser className="h-4 w-4 text-violet-600" />
-                                <h3 className="font-semibold text-gray-800">{booking.clientName}</h3>
-                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border ${getStatusColor(booking.status)}`}>
-                                  {getStatusIcon(booking.status)}
-                                  {getStatusText(booking.status)}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600 mb-2">
-                                <div className="flex items-center gap-1">
-                                  <IconMail className="h-4 w-4" />
-                                  <span>{booking.clientEmail}</span>
+                      {filteredEvents.map((event: CalendarEvent, index: number) => {
+                        const startInfo = formatDateTime(event.estart);
+                        const endInfo = formatDateTime(event.eend);
+                        
+                        return (
+                          <div
+                            key={index}
+                            className="bg-gradient-to-r from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-200/50 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+                            onClick={() => handleEventClick(event)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <IconUser className="h-4 w-4 text-violet-600" />
+                                  <h3 className="font-semibold text-gray-800">{event.cname}</h3>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <IconPhone className="h-4 w-4" />
-                                  <span>{booking.clientPhone}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <IconClock className="h-4 w-4" />
-                                  <span>{booking.preferredDate} v {booking.preferredTime}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <IconMapPin className="h-4 w-4" />
-                                  <span>{booking.preferredLocation}</span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600 mb-2">
+                                  <div className="flex items-center gap-1">
+                                    <IconClock className="h-4 w-4" />
+                                    <span>{startInfo.date} {startInfo.time} - {endInfo.time}</span>
+                                  </div>
+                                  {event.property && (
+                                    <div className="flex items-center gap-1">
+                                      <IconMapPin className="h-4 w-4" />
+                                      <span>{event.property}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                              {booking.message && (
-                                <div className="flex items-start gap-1 text-sm text-gray-600">
-                                  <IconMessage className="h-4 w-4 mt-0.5" />
-                                  <span className="truncate">{booking.message}</span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="hover:bg-violet-50 hover:border-violet-300"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleBookingClick(booking);
-                                }}
-                              >
-                                <IconEye className="h-4 w-4" />
-                              </Button>
+                              <div className="flex gap-2">
+                                <button
+                                  className="hover:bg-violet-50 hover:border-violet-300 p-2 rounded-lg border"
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation();
+                                    handleEventClick(event);
+                                  }}
+                                >
+                                  <IconEye className="h-4 w-4" />
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>
@@ -623,20 +687,19 @@ export function CalendarPage() {
           </div>
         </div>
 
-        {/* Booking Detail Modal */}
-        {showDetail && selectedBooking && (
+        {/* Event Detail Modal */}
+        {showDetail && selectedEvent && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-800">Detail rezervace</h2>
-                  <Button
+                  <h2 className="text-2xl font-bold text-gray-800">Detail události</h2>
+                  <button
                     onClick={handleCloseDetail}
-                    variant="outline"
-                    size="sm"
+                    className="hover:bg-gray-50 p-2 rounded-lg"
                   >
                     <IconX className="h-4 w-4" />
-                  </Button>
+                  </button>
                 </div>
               </div>
               
@@ -644,86 +707,66 @@ export function CalendarPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Klient</label>
+                      <label className="text-sm font-medium text-gray-500">Název události</label>
                       <div className="flex items-center gap-2 mt-1">
                         <IconUser className="h-4 w-4 text-violet-600" />
-                        <span className="text-lg font-semibold">{selectedBooking.clientName}</span>
+                        <span className="text-lg font-semibold">{selectedEvent.cname}</span>
                       </div>
                     </div>
                     
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Email</label>
+                      <label className="text-sm font-medium text-gray-500">Začátek</label>
                       <div className="flex items-center gap-2 mt-1">
-                        <IconMail className="h-4 w-4 text-violet-600" />
-                        <span>{selectedBooking.clientEmail}</span>
+                        <IconClock className="h-4 w-4 text-violet-600" />
+                        <span>{formatDateTime(selectedEvent.estart).date} v {formatDateTime(selectedEvent.estart).time}</span>
                       </div>
                     </div>
                     
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Telefon</label>
+                      <label className="text-sm font-medium text-gray-500">Konec</label>
                       <div className="flex items-center gap-2 mt-1">
-                        <IconPhone className="h-4 w-4 text-violet-600" />
-                        <span>{selectedBooking.clientPhone}</span>
+                        <IconClock className="h-4 w-4 text-violet-600" />
+                        <span>{formatDateTime(selectedEvent.eend).date} v {formatDateTime(selectedEvent.eend).time}</span>
                       </div>
                     </div>
                   </div>
                   
                   <div className="space-y-4">
+                    {selectedEvent.property && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Nemovitost/Místo</label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <IconMapPin className="h-4 w-4 text-violet-600" />
+                          <span>{selectedEvent.property}</span>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Datum a čas</label>
+                      <label className="text-sm font-medium text-gray-500">Doba trvání</label>
                       <div className="flex items-center gap-2 mt-1">
                         <IconClock className="h-4 w-4 text-violet-600" />
-                        <span className="text-lg font-semibold">
-                          {selectedBooking.preferredDate} v {selectedBooking.preferredTime}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Místo</label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <IconMapPin className="h-4 w-4 text-violet-600" />
-                        <span>{selectedBooking.preferredLocation}</span>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Status</label>
-                      <div className="mt-1">
-                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm border ${getStatusColor(selectedBooking.status)}`}>
-                          {getStatusIcon(selectedBooking.status)}
-                          {getStatusText(selectedBooking.status)}
+                        <span>
+                          {Math.round((new Date(selectedEvent.eend).getTime() - new Date(selectedEvent.estart).getTime()) / (1000 * 60))} minut
                         </span>
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                {selectedBooking.message && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Poznámka</label>
-                    <div className="flex items-start gap-2 mt-1 p-4 bg-gray-50 rounded-xl">
-                      <IconMessage className="h-4 w-4 text-violet-600 mt-0.5" />
-                      <span>{selectedBooking.message}</span>
-                    </div>
-                  </div>
-                )}
-                
                 <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
+                  <button
+                    className="flex-1 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-xl flex items-center justify-center gap-2"
                   >
-                    <IconEdit className="h-4 w-4 mr-2" />
+                    <IconEdit className="h-4 w-4" />
                     Upravit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="text-red-600 hover:bg-red-50"
+                  </button>
+                  <button
+                    className="text-red-600 hover:bg-red-50 border border-red-300 px-4 py-2 rounded-xl flex items-center justify-center gap-2"
                   >
-                    <IconTrash className="h-4 w-4 mr-2" />
+                    <IconTrash className="h-4 w-4" />
                     Smazat
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>

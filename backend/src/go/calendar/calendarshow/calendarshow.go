@@ -15,9 +15,14 @@ import (
 )
 
 func HandleCalendarShow(w http.ResponseWriter, r *http.Request) {
-
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	calendarID := os.Getenv("calendarID")
-	fmt.Print(calendarID)
 	events, err := getCalendarEvents(calendarID)
 	if err != nil {
 		http.Error(w, "Chyba při získávání událostí: "+err.Error(), http.StatusInternalServerError)
