@@ -16,6 +16,7 @@ interface ChatMessage {
   content: string;
   sender: 'user' | 'ai';
   timestamp: string;
+  model?: string;
 }
 
 export function ChatPage() {
@@ -122,7 +123,8 @@ export function ChatPage() {
         id: (Date.now() + 1).toString(),
         content: data.bot_reply || data.response || "Omlouvám se, nerozumím vaší otázce.",
         sender: 'ai',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        model: data.model || data.model_name || 'AI'
       };
 
       setMessages(prev => [...prev, aiMessage]);
@@ -131,21 +133,14 @@ export function ChatPage() {
     } catch (error) {
       console.error('API communication error:', error);
       
-      const fallbackResponses = [
-        "Omlouvám se, momentálně mám problémy s připojením. Zkuste to prosím za chvíli.",
-        "Bohužel nemohu právě teď odpovědět. Kontaktujte prosím přímo našeho makléře na +420 123 456 789.",
-        "Systém je dočasně nedostupný. Pro okamžitou pomoc volejte +420 123 456 789."
-      ];
-      
-      const fallbackResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-      
+      const errorMessage = `Chyba: ${error instanceof Error ? error.message : String(error)}`;
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: fallbackResponse,
+        content: errorMessage,
         sender: 'ai',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        model: 'AI'
       };
-
       setMessages(prev => [...prev, aiMessage]);
       setConnectionStatus('error');
     }
@@ -343,7 +338,7 @@ export function ChatPage() {
                       <p className={`text-xs ${
                         message.sender === 'user' ? 'text-emerald-100' : 'text-gray-500'
                       }`}>
-                        {getCurrentTime()}
+                        {getCurrentTime()} {message.sender === 'ai' && typeof message.model === 'string' && message.model.length > 0 ? `• ${message.model}` : ''}
                       </p>
                       {message.sender === 'ai' && (
                         <div className="flex items-center gap-1">

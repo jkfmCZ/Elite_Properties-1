@@ -11,5 +11,5 @@ func CalnedarHandler(calendarID string) {
 	// insertTask(calendarID)
 	http.HandleFunc("/api/calendar/send", calendarsend.HandleSend)
 	http.HandleFunc("/api/calendar/show", calendarshow.HandleCalendarShow)
-	http.ListenAndServe(":8080", nil)
+	// Server is started in main.go
 }
