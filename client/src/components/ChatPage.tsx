@@ -16,7 +16,6 @@ interface ChatMessage {
   content: string;
   sender: 'user' | 'ai';
   timestamp: string;
-  model?: string;
 }
 
 export function ChatPage() {
@@ -124,7 +123,6 @@ export function ChatPage() {
         content: data.bot_reply || data.response || "Omlouvám se, nerozumím vaší otázce.",
         sender: 'ai',
         timestamp: new Date().toISOString(),
-        model: data.model || data.model_name || 'AI'
       };
 
       setMessages(prev => [...prev, aiMessage]);
@@ -139,7 +137,6 @@ export function ChatPage() {
         content: errorMessage,
         sender: 'ai',
         timestamp: new Date().toISOString(),
-        model: 'AI'
       };
       setMessages(prev => [...prev, aiMessage]);
       setConnectionStatus('error');
@@ -338,7 +335,7 @@ export function ChatPage() {
                       <p className={`text-xs ${
                         message.sender === 'user' ? 'text-emerald-100' : 'text-gray-500'
                       }`}>
-                        {getCurrentTime()} {message.sender === 'ai' && typeof message.model === 'string' && message.model.length > 0 ? `• ${message.model}` : ''}
+                        {getCurrentTime()} {`• ${message.sender === 'ai' ? 'openeurollm-czech:latest' : 'you'}`}
                       </p>
                       {message.sender === 'ai' && (
                         <div className="flex items-center gap-1">

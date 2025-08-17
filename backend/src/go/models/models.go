@@ -22,7 +22,6 @@ type Message struct {
 
 type Response struct {
 	BotReply string `json:"bot_reply"`
-	Model    string `json:"model"`
 }
 
 type CalendarPost struct {
