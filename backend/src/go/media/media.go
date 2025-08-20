@@ -1,24 +1,16 @@
-package main
+package media
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"prop/calendar/calendarhandler"
-	"prop/chat/userinput"
-	"prop/health"
-	"prop/media"
 	"strings"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
-// Funkce pro zpracování nahrávání souborů
 func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Povolíme CORS
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -88,38 +80,4 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-}
-
-func main() {
-	// load env
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		log.Fatal("Chyba při načítání .env souboru:", err)
-	}
-
-	apiKey := os.Getenv("GO_PORT")
-	calendarID := os.Getenv("calendarID")
-
-	// Vytvoření složek pro nahrávané soubory, pokud neexistují
-	os.MkdirAll(filepath.Join("uploads", "images"), os.ModePerm)
-	os.MkdirAll(filepath.Join("uploads", "tours"), os.ModePerm)
-
-	// Handler pro servírování statických souborů (obrázků, 3D tours)
-	fs := http.FileServer(http.Dir("uploads"))
-	http.Handle("/uploads/", http.StripPrefix("/uploads/", fs))
-
-	//calender
-	calendarhandler.CalnedarHandler(calendarID)
-	http.HandleFunc("/api/chat", userinput.HandleINP)
-
-	// *** NOVÝ ENDPOINT PRO NAHRÁVÁNÍ SOUBORŮ ***
-	http.HandleFunc("/api/upload", media.UploadFileHandler)
-
-	// Health check endpoint with CORS
-	http.HandleFunc("/api/health", health.HealthB)
-	http.HandleFunc("/health", health.HealthB)
-
-	// Start server only once
-
-	http.ListenAndServe(":"+apiKey, nil)
 }
