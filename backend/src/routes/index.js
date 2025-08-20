@@ -8,6 +8,7 @@ const { ChatController } = require('../controllers/chatController');
 // Import route modules
 const authRoutes = require('./auth');
 const propertyRoutes = require('./properties');
+const uploadRoutes = require('./upload');
 
 const router = Router();
 
@@ -50,6 +51,11 @@ function createApiRoutes() {
 
     // Authentication routes
     apiRouter.use('/auth', authRoutes);
+    apiRouter.use('/properties', propertyRoutes);
+
+    // <-- PŘIDAT TENTO ŘÁDEK
+    // Registrujeme novou cestu pro nahrávání souborů
+    apiRouter.use('/properties/upload', uploadRoutes);
 
     // Property routes (new database-enabled)
     apiRouter.use('/properties', propertyRoutes);
@@ -89,3 +95,5 @@ function createApiRoutes() {
 }
 
 module.exports = { setRoutes };
+
+

@@ -245,18 +245,23 @@ class PropertyController {
                 address,
                 city,
                 state,
-                zipCode,
+                zipCode, // Změněno z zip_code
                 country = 'USA',
                 bedrooms,
                 bathrooms,
-                squareFootage,
-                lotSize,
-                yearBuilt,
-                propertyType,
+                squareFootage, // Změněno z square_footage
+                lotSize, // Změněno z lot_size
+                yearBuilt, // Změněno z year_built
+                propertyType, // Změněno z property_type
                 status = 'available',
                 features = [],
                 amenities = [],
-                images = []
+                published,
+                // --- TOTO JSOU NOVÁ POLE Z FRONTENDU ---
+                mainImageUrl, 
+                main_image_url, 
+                virtualTourUrl, 
+                virtual_tour_url
             } = req.body;
 
             if (!title || !price || !location || !propertyType) {
@@ -267,14 +272,18 @@ class PropertyController {
             }
 
             const propertyUuid = uuidv4();
+            
+            // --- ZMĚNA ZDE: Použijeme URL, které přišlo z uploadu ---
+            const finalImageUrl = mainImageUrl || main_image_url;
+            const finalTourUrl = virtualTourUrl || virtual_tour_url;
 
             const insertQuery = `
                 INSERT INTO properties (
                     uuid, broker_id, title, description, price, location, address,
                     city, state, zip_code, country, bedrooms, bathrooms, 
                     square_footage, lot_size, year_built, property_type, status,
-                    features, amenities, main_image_url
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    features, amenities, published, main_image_url, virtual_tour_url
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             const insertResult = await executeQuery(insertQuery, [
@@ -284,7 +293,7 @@ class PropertyController {
                 description,
                 price,
                 location,
-                address,
+                address || location, // Pokud adresa nepřijde, použijeme location
                 city,
                 state,
                 zipCode,
@@ -298,10 +307,13 @@ class PropertyController {
                 status,
                 JSON.stringify(features),
                 JSON.stringify(amenities),
-                images.length > 0 ? images[0] : null
+                published,
+                finalImageUrl,      // <-- PŘIDÁNO
+                finalTourUrl        // <-- PŘIDÁNO
             ]);
 
             if (!insertResult.success) {
+                console.error('DB Insert Error:', insertResult.error);
                 return res.status(500).json({
                     success: false,
                     message: 'Failed to create property'
@@ -309,24 +321,6 @@ class PropertyController {
             }
 
             const propertyId = insertResult.data.insertId;
-
-            // Insert property images
-            if (images.length > 0) {
-                const imageInserts = images.map((imageUrl, index) => [
-                    propertyId,
-                    imageUrl,
-                    `${title} - Image ${index + 1}`,
-                    index === 0, // First image is main
-                    index + 1
-                ]);
-
-                const imageQuery = `
-                    INSERT INTO property_images (property_id, image_url, alt_text, is_main, sort_order)
-                    VALUES ?
-                `;
-
-                await executeQuery(imageQuery, [imageInserts]);
-            }
 
             res.status(201).json({
                 success: true,
@@ -346,95 +340,80 @@ class PropertyController {
         }
     };
 
+
     updateProperty = async (req, res) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params; // id je uuid
             const brokerId = req.broker.id;
             const isAdmin = req.broker.is_admin;
 
-            // Check if property exists and user has permission
-            const checkQuery = `
-                SELECT id, broker_id FROM properties 
-                WHERE uuid = ? AND published = TRUE
-            `;
-
+            const checkQuery = `SELECT id, broker_id FROM properties WHERE uuid = ?`;
             const checkResult = await executeQuery(checkQuery, [id]);
 
             if (!checkResult.success || checkResult.data.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Property not found'
-                });
+                return res.status(404).json({ success: false, message: 'Property not found' });
             }
 
             const property = checkResult.data[0];
 
-            // Check if user has permission (owner or admin)
             if (property.broker_id !== brokerId && !isAdmin) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'You do not have permission to update this property'
-                });
+                return res.status(403).json({ success: false, message: 'You do not have permission to update this property' });
             }
 
             const updateData = req.body;
+            
+            // --- ZMĚNA ZDE: Explicitně přidáme URL pole do povolených ---
             const allowedFields = [
                 'title', 'description', 'price', 'location', 'address', 'city', 
                 'state', 'zip_code', 'country', 'bedrooms', 'bathrooms', 
                 'square_footage', 'lot_size', 'year_built', 'property_type', 
-                'status', 'features', 'amenities', 'featured', 'published'
+                'status', 'features', 'amenities', 'featured', 'published',
+                'main_image_url', 'virtual_tour_url' // <-- PŘIDÁNO
             ];
 
             const updateFields = [];
             const updateValues = [];
 
-            Object.keys(updateData).forEach(field => {
-                if (allowedFields.includes(field)) {
-                    updateFields.push(`${field} = ?`);
-                    if (field === 'features' || field === 'amenities') {
-                        updateValues.push(JSON.stringify(updateData[field]));
+            // Zpracujeme URL z frontendu, který posílá více formátů pro jistotu
+            updateData.main_image_url = updateData.mainImageUrl || updateData.main_image_url;
+            updateData.virtual_tour_url = updateData.virtualTourUrl || updateData.virtual_tour_url;
+
+            Object.keys(updateData).forEach(key => {
+                // Přemapujeme camelCase z frontendu na snake_case pro databázi
+                let dbKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+                if (dbKey === 'zip_code') dbKey = 'zip_code'; // oprava pro zipCode
+
+                if (allowedFields.includes(dbKey)) {
+                    updateFields.push(`${dbKey} = ?`);
+                    if (dbKey === 'features' || dbKey === 'amenities') {
+                        updateValues.push(JSON.stringify(updateData[key]));
                     } else {
-                        updateValues.push(updateData[field]);
+                        updateValues.push(updateData[key]);
                     }
                 }
             });
 
+
             if (updateFields.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'No valid fields to update'
-                });
+                return res.status(400).json({ success: false, message: 'No valid fields to update' });
             }
 
             updateFields.push('updated_at = CURRENT_TIMESTAMP');
             updateValues.push(property.id);
 
-            const updateQuery = `
-                UPDATE properties 
-                SET ${updateFields.join(', ')}
-                WHERE id = ?
-            `;
-
+            const updateQuery = `UPDATE properties SET ${updateFields.join(', ')} WHERE id = ?`;
             const updateResult = await executeQuery(updateQuery, updateValues);
 
             if (!updateResult.success) {
-                return res.status(500).json({
-                    success: false,
-                    message: 'Failed to update property'
-                });
+                console.error('DB Update Error:', updateResult.error);
+                return res.status(500).json({ success: false, message: 'Failed to update property' });
             }
 
-            res.json({
-                success: true,
-                message: 'Property updated successfully'
-            });
+            res.json({ success: true, message: 'Property updated successfully' });
 
         } catch (error) {
             console.error('Update property error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to update property'
-            });
+            res.status(500).json({ success: false, message: 'Failed to update property' });
         }
     };
 

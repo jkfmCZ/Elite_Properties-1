@@ -164,7 +164,8 @@ app.get('/health', (req, res) => {
         go_backend: goProcess ? 'running' : 'not running'
     });
 });
-
+// Servírování statických souborů z adresáře 'uploads'
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 // Routes
 setRoutes(app);
 

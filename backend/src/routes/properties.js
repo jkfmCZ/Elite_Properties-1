@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const propertyController = require('../controllers/propertyController');
+// Ujisti se, že cesta je správná a importuješ ten _new soubor
+const propertyController = require('../controllers/propertyController_new'); 
 const { BrokerController } = require('../controllers/brokerController');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 

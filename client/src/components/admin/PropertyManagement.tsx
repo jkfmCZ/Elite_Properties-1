@@ -373,7 +373,7 @@ export function PropertyManagement() {
                 <div className="h-48 bg-gray-200 dark:bg-gray-700 relative">
                   {property.main_image_url ? (
                     <img
-                      src={property.main_image_url}
+                      src={`http://localhost:5000${property.main_image_url}`}
                       alt={property.title}
                       className="w-full h-full object-cover"
                     />
