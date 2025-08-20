@@ -17,6 +17,36 @@ const GO_PORT = process.env.GO_PORT || '8080';
 
 let goProcess = null;
 
+// CORS Configuration - FIXED VERSION
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:3000',
+    process.env.CORS_ORIGIN,
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
+  credentials: process.env.CORS_CREDENTIALS === 'true',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'Pragma'
+  ],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
+// Apply middleware in correct order
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
+
 // Function to check if Go is installed
 function checkGoInstallation() {
     return new Promise((resolve) => {
@@ -154,6 +184,26 @@ app.use(cors({
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', (req, res, next) => {
+  // Set CORS headers explicitly for static files
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, '..', 'uploads')));
+
+// Also serve mock images if they exist
+const mockImagesPath = path.join(__dirname, '..', 'images');
+if (fs.existsSync(mockImagesPath)) {
+  app.use('/images', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  }, express.static(mockImagesPath));
+}
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -165,7 +215,7 @@ app.get('/health', (req, res) => {
     });
 });
 // Servírování statických souborů z adresáře 'uploads'
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
 // Routes
 setRoutes(app);
 

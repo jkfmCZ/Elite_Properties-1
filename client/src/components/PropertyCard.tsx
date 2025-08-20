@@ -28,9 +28,32 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
   // Check if current property is favorited
   const isFavorited = favorites.includes(property.id);
 
+  // FIXED: Proper image URL construction
+  const getImageUrl = (imageUrl: string) => {
+    if (!imageUrl) return '/placeholder-property.jpg'; // fallback image
+    
+    // If it's already a full URL, use it as is
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    
+    // If it's a relative path starting with /uploads, construct full URL
+    if (imageUrl.startsWith('/uploads')) {
+      return `http://localhost:5000${imageUrl}`;
+    }
+    
+    // If it's just a filename or path without /uploads, construct full path
+    if (!imageUrl.startsWith('/')) {
+      return `http://localhost:5000/uploads/images/${imageUrl}`;
+    }
+    
+    // Default case
+    return `http://localhost:5000${imageUrl}`;
+  };
+
   // Handle favorite toggle
   const handleFavorite = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigation when clicking the heart
+    e.preventDefault();
     e.stopPropagation();
     
     if (isFavorited) {
@@ -47,6 +70,7 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
       });
     }
   };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -80,9 +104,14 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
       <Card className="overflow-hidden h-full hover:shadow-xl transition-all duration-300">
         <div className="relative overflow-hidden">
           <img
-            src={property.imageUrl}
+            src={getImageUrl(property.imageUrl)}
             alt={property.title}
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              // Fallback image if the image fails to load
+              const target = e.target as HTMLImageElement;
+              target.src = '/placeholder-property.jpg';
+            }}
           />
           <div className="absolute top-4 left-4">
             <Badge className={getTypeColor(property.type)}>
@@ -93,7 +122,7 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
             <Button
               size="icon"
               variant="secondary"
-                  className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0  h-8 w-8 p-0 flex items-center justify-center rounded-md"
+              className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0 h-8 w-8 p-0 flex items-center justify-center rounded-md"
               onClick={handleFavorite}
             >
               <IconHeart className={`h-3 w-3 transition-all duration-200 ${

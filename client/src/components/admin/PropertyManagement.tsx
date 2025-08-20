@@ -376,6 +376,14 @@ export function PropertyManagement() {
                       src={`http://localhost:5000${property.main_image_url}`}
                       alt={property.title}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/placeholder-property.jpg';
+                        // Or you can hide the image and show an icon instead:
+                        // target.style.display = 'none';
+                        // target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
