@@ -13,8 +13,11 @@ import {
   IconHeart, 
   IconShare, 
   IconChevronLeft, 
-  IconChevronRight
+  IconChevronRight,
+  IconLoader,
+  IconAlertCircle
 } from '@tabler/icons-react';
+import { Property } from '../types';
 import { mockProperties } from '../data/mockData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,13 +25,14 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useToast } from '../hooks/use-toast';
+import { propertyService } from '../services/propertyService';
 
 export function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>();
   
-  // Find property from mock data
-  const property = mockProperties.find(p => p.id === id);
-  
+  const [property, setProperty] = useState<Property | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [favorites, setFavorites] = useLocalStorage<string[]>('favorites', []);
   const { toast } = useToast();
@@ -36,34 +40,141 @@ export function PropertyDetailPage() {
   // Check if current property is favorited
   const isFavorited = property ? favorites.includes(property.id) : false;
 
+  // Function to get image URL with proper handling for database images
+  const getImageUrl = (imageUrl: string) => {
+    if (!imageUrl) return '/placeholder-property.jpg';
+    
+    // If it's already a full URL, use it as is
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    
+    // If it's a relative path starting with /uploads, construct full URL
+    if (imageUrl.startsWith('/uploads')) {
+      return `http://localhost:5000${imageUrl}`;
+    }
+    
+    // If it's just a filename or path without /uploads, construct full path
+    if (!imageUrl.startsWith('/')) {
+      return `http://localhost:5000/uploads/images/${imageUrl}`;
+    }
+    
+    // Default case
+    return `http://localhost:5000${imageUrl}`;
+  };
+
+  // Fetch property data
+  useEffect(() => {
+    const fetchProperty = async () => {
+      if (!id) {
+        setError('No property ID provided');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        console.log('Fetching property with ID:', id);
+        
+        // First try to find in mock data
+        const mockProperty = mockProperties.find(p => p.id === id);
+        if (mockProperty) {
+          console.log('Found property in mock data:', mockProperty);
+          setProperty(mockProperty);
+          setLoading(false);
+          return;
+        }
+
+        // If not found in mock data, try database
+        console.log('Property not found in mock data, trying database...');
+        const dbProperty = await propertyService.getPropertyById(id);
+        
+        if (dbProperty) {
+          console.log('Found property in database:', dbProperty);
+          setProperty(dbProperty);
+        } else {
+          console.log('Property not found in database either');
+          setError('Property not found');
+        }
+      } catch (err) {
+        console.error('Error fetching property:', err);
+        setError('Failed to load property. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperty();
+  }, [id]);
+
   // Scroll to top when component mounts or property changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
 
-  // Property not found
-  if (!property) {
+  // Loading state
+  if (loading) {
     return (
       <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
+          <IconLoader className="h-16 w-16 mx-auto mb-4 text-blue-500 animate-spin" />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Property Not Found
+            Loading Property
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mb-6">
-            The property you're looking for doesn't exist.
+            Please wait while we fetch the property details...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !property) {
+    return (
+      <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <IconAlertCircle className="h-16 w-16 mx-auto mb-4 text-red-500" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            {error || 'Property Not Found'}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            {error === 'Property not found' 
+              ? "The property you're looking for doesn't exist or may have been removed." 
+              : "There was an error loading the property. Please try again or contact support if the problem persists."
+            }
           </p>
           <div className="space-x-4">
             <Button asChild>
               <Link to="/properties">Back to Properties</Link>
             </Button>
+            {error !== 'Property not found' && (
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            )}
           </div>
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <p className="text-sm text-red-700 dark:text-red-300">
+                <strong>Debug Info:</strong> Property ID: {id}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
   // Get all images for the property (use images array if available, fallback to single imageUrl)
-  const allImages = property.images && property.images.length > 0 ? property.images : [property.imageUrl];
+  const allImages = property.images && property.images.length > 0 
+    ? property.images.map(img => getImageUrl(img))
+    : [getImageUrl(property.imageUrl)];
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
@@ -183,6 +294,11 @@ export function PropertyDetailPage() {
                   src={allImages[currentImageIndex]}
                   alt={`${property.title} - Image ${currentImageIndex + 1}`}
                   className="w-full h-64 sm:h-80 lg:h-96 object-cover rounded-xl shadow-2xl transition-all duration-300"
+                  onError={(e) => {
+                    // Fallback image if the image fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/placeholder-property.jpg';
+                  }}
                 />
                 
                 {/* Overlay gradient for better icon visibility */}
@@ -272,6 +388,10 @@ export function PropertyDetailPage() {
                           src={image}
                           alt={`${property.title} - Thumbnail ${index + 1}`}
                           className="w-full h-full object-cover transition-all duration-300"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/placeholder-property.jpg';
+                          }}
                         />
                         {currentImageIndex === index && (
                           <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
@@ -439,7 +559,7 @@ export function PropertyDetailPage() {
                       Send Email
                     </Button>
                     <Button variant="outline" className="w-full" size="lg" asChild>
-                      <Link to="/chat">
+                      <Link to="/calendar">
                         <IconCalendar className="mr-2 h-4 w-4" />
                         Schedule Meeting
                       </Link>

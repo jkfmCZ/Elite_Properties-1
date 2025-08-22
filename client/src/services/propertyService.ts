@@ -20,20 +20,25 @@ export interface PropertyResponse {
 
 // Map database property to frontend Property interface
 const mapDbPropertyToFrontend = (dbProperty: any): Property => {
-  return {
+  console.log('Mapping DB property:', dbProperty);
+  
+  const mapped = {
     id: dbProperty.uuid || dbProperty.id?.toString() || '',
     title: dbProperty.title || '',
     description: dbProperty.description || '',
     price: parseFloat(dbProperty.price) || 0,
-    location: dbProperty.location || `${dbProperty.city || ''}, ${dbProperty.state || ''}`.trim().replace(/,$/, ''),
+    location: dbProperty.location || `${dbProperty.city || ''}, ${dbProperty.state || ''}`.trim().replace(/,$/, '') || '',
     bedrooms: parseInt(dbProperty.bedrooms) || 0,
     bathrooms: parseFloat(dbProperty.bathrooms) || 0,
-    squareFootage: parseInt(dbProperty.square_footage) || 0,
+    squareFootage: parseInt(dbProperty.square_footage) || parseInt(dbProperty.squareFootage) || 0,
     imageUrl: dbProperty.main_image_url || dbProperty.imageUrl || '',
     images: dbProperty.images || (dbProperty.main_image_url ? [dbProperty.main_image_url] : []),
     type: dbProperty.property_type || dbProperty.type || 'house',
     status: dbProperty.status || 'available'
   };
+  
+  console.log('Mapped property:', mapped);
+  return mapped;
 };
 
 class PropertyService {
@@ -89,17 +94,24 @@ class PropertyService {
   // Get a single property by ID
   async getPropertyById(id: string): Promise<Property | null> {
     try {
+      console.log('PropertyService: Fetching property by ID:', id);
       const response = await apiService.get<any>(`/properties/${id}`);
       
+      console.log('PropertyService: Property response:', response);
+      
       if (response.success && response.data) {
-        return response.data;
-      } else if (response.id) {
-        return response;
+        console.log('PropertyService: Found property data, mapping...');
+        return mapDbPropertyToFrontend(response.data);
+      } else if (response.id || response.uuid) {
+        // Direct property object
+        console.log('PropertyService: Direct property object, mapping...');
+        return mapDbPropertyToFrontend(response);
       }
       
+      console.log('PropertyService: No property data found');
       return null;
     } catch (error) {
-      console.error(`Failed to fetch property ${id}:`, error);
+      console.error(`PropertyService: Failed to fetch property ${id}:`, error);
       throw error;
     }
   }
@@ -110,7 +122,7 @@ class PropertyService {
       const response = await apiService.post<any>('/properties', propertyData);
       
       if (response.success && response.data) {
-        return response.data;
+        return mapDbPropertyToFrontend(response.data);
       }
       
       throw new Error('Failed to create property');
@@ -126,7 +138,7 @@ class PropertyService {
       const response = await apiService.put<any>(`/properties/${id}`, propertyData);
       
       if (response.success && response.data) {
-        return response.data;
+        return mapDbPropertyToFrontend(response.data);
       }
       
       throw new Error('Failed to update property');
