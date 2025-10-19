@@ -322,6 +322,26 @@ class PropertyController {
 
             const propertyId = insertResult.data.insertId;
 
+            // If a main image URL was provided, persist it into the property_images table as the main image
+            try {
+                if (finalImageUrl) {
+                    // First, unset any existing main image flags just in case
+                    await executeQuery(
+                        'UPDATE property_images SET is_main = FALSE WHERE property_id = ?',
+                        [propertyId]
+                    );
+
+                    // Insert the image as the main image at sort_order 0
+                    await executeQuery(
+                        'INSERT INTO property_images (property_id, image_url, alt_text, is_main, sort_order) VALUES (?, ?, ?, TRUE, 0)',
+                        [propertyId, finalImageUrl, title || 'Main image']
+                    );
+                }
+            } catch (imgErr) {
+                // Do not fail the request; log for debugging
+                console.error('Failed to persist main image into property_images:', imgErr);
+            }
+
             res.status(201).json({
                 success: true,
                 message: 'Property created successfully',
@@ -407,6 +427,39 @@ class PropertyController {
             if (!updateResult.success) {
                 console.error('DB Update Error:', updateResult.error);
                 return res.status(500).json({ success: false, message: 'Failed to update property' });
+            }
+
+            // If main_image_url was provided in the update, ensure it's reflected in property_images as the main image
+            try {
+                const newMainUrl = updateData.main_image_url;
+                if (newMainUrl) {
+                    // Unset previous main images for this property
+                    await executeQuery(
+                        'UPDATE property_images SET is_main = FALSE WHERE property_id = ?',
+                        [property.id]
+                    );
+
+                    // Check if this image already exists for the property
+                    const existing = await executeQuery(
+                        'SELECT id FROM property_images WHERE property_id = ? AND image_url = ? LIMIT 1',
+                        [property.id, newMainUrl]
+                    );
+
+                    if (existing.success && existing.data.length > 0) {
+                        await executeQuery(
+                            'UPDATE property_images SET is_main = TRUE, sort_order = 0 WHERE id = ?',
+                            [existing.data[0].id]
+                        );
+                    } else {
+                        await executeQuery(
+                            'INSERT INTO property_images (property_id, image_url, alt_text, is_main, sort_order) VALUES (?, ?, ?, TRUE, 0)',
+                            [property.id, newMainUrl, 'Main image']
+                        );
+                    }
+                }
+            } catch (imgErr) {
+                // Non-fatal; log for investigation
+                console.error('Failed to sync main image with property_images:', imgErr);
             }
 
             res.json({ success: true, message: 'Property updated successfully' });
