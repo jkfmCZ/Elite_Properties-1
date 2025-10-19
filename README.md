@@ -2,6 +2,8 @@
 
 A comprehensive real estate application featuring a modern React/TypeScript frontend and robust Node.js/Express backend with MySQL database integration. The platform offers an intuitive interface for browsing properties, managing broker dashboards, booking appointments, and includes AI-powered chat assistance.
 
+> Looking for the scope we’re shipping first? See the MVP plan: docs/MVP.md
+
 ## ✨ Features
 
 ### Frontend Features
