@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "@types/react-beautiful-dnd": "^13.1.8"
+  },
+  "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1"
+  }
+}

@@ -12,6 +12,7 @@ import (
 	"prop/chat/userinput"
 	"prop/health"
 	"prop/media"
+	"prop/propertyimages"
 	"strings"
 	"time"
 
@@ -108,18 +109,28 @@ func main() {
 	fs := http.FileServer(http.Dir("uploads"))
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", fs))
 
-	//calender
+	//calendar
 	calendarhandler.CalnedarHandler(calendarID)
 	http.HandleFunc("/api/chat", userinput.HandleINP)
 
-	// *** NOVÝ ENDPOINT PRO NAHRÁVÁNÍ SOUBORŮ ***
+	// *** EXISTUJÍCÍ ENDPOINT PRO NAHRÁVÁNÍ SOUBORŮ ***
 	http.HandleFunc("/api/upload", media.UploadFileHandler)
+
+	// *** NOVÉ ENDPOINTY PRO PROPERTY IMAGES ***
+	propertyimages.RegisterPropertyImageHandlers()
 
 	// Health check endpoint with CORS
 	http.HandleFunc("/api/health", health.HealthB)
 	http.HandleFunc("/health", health.HealthB)
 
-	// Start server only once
+	fmt.Printf("Server running on port %s\n", apiKey)
+	fmt.Println("Available endpoints:")
+	fmt.Println("- GET /api/properties/{uuid}/images")
+	fmt.Println("- POST /api/properties/{uuid}/images")
+	fmt.Println("- PUT /api/properties/{uuid}/main-image")
+	fmt.Println("- POST /api/properties/upload-multiple")
+	fmt.Println("- POST /api/upload (existing)")
 
+	// Start server
 	http.ListenAndServe(":"+apiKey, nil)
 }
