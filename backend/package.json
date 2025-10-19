@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
-    "setup": "node src/scripts/setupDatabase.js && cd src/go && go mod tidy || echo Skipping Go mod tidy (Go not installed or path not found)",
+    "setup": "node src/scripts/setupDatabase.js && cd go && go mod tidy",
     "setup-dev": "npm install && npm run setup",
     "migrate": "node src/scripts/runMigrations.js",
     "test": "jest",
