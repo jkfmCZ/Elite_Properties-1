@@ -181,3 +181,4 @@ tramp
 # uploads/
 # public/uploads/
 # storage/
+backend/src/go/calendar/credentials.json
