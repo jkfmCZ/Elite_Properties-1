@@ -17,7 +17,6 @@ func PrintDB() []map[string]interface{} {
 	return properties
 }
 
-// Nová funkce - formátuje databázi pro PropBot
 func FormatDBForBot() string {
 	properties := PrintDB()
 	return formatPropertiesForBot(properties)
@@ -78,14 +77,13 @@ func getAllProperties(db *sql.DB) []map[string]interface{} {
 	return results
 }
 
-// Pomocná funkce pro formátování
 func formatPropertiesForBot(properties []map[string]interface{}) string {
 	var builder strings.Builder
 
 	builder.WriteString("=== DATABÁZE NEMOVITOSTÍ ===\n\n")
 
 	for _, prop := range properties {
-		// Získej hodnoty s bezpečným přístupem
+
 		id := getStringValue(prop, "id")
 		title := getStringValue(prop, "title")
 		propertyType := translatePropertyType(getStringValue(prop, "property_type"))
@@ -118,9 +116,8 @@ func formatPropertiesForBot(properties []map[string]interface{}) string {
 			builder.WriteString(fmt.Sprintf("- Popis: %s\n", description))
 		}
 
-		// Zpracování features pokud existují
 		if features := getStringValue(prop, "features"); features != "" {
-			// Předpokládám, že features jsou JSON array nebo comma-separated
+
 			cleanFeatures := strings.ReplaceAll(features, `["`, "")
 			cleanFeatures = strings.ReplaceAll(cleanFeatures, `"]`, "")
 			cleanFeatures = strings.ReplaceAll(cleanFeatures, `"`, "")
@@ -135,7 +132,6 @@ func formatPropertiesForBot(properties []map[string]interface{}) string {
 	return builder.String()
 }
 
-// Pomocné funkce
 func getStringValue(m map[string]interface{}, key string) string {
 	if val, exists := m[key]; exists && val != nil {
 		return fmt.Sprintf("%v", val)

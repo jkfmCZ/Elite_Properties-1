@@ -15,7 +15,6 @@ func genprompt(msg string) string {
 	return reply
 }
 
-// Returns a prompt for testing AI response without DB data
 func testGenprompt(msg string) string {
 	return fmt.Sprintf(`Klient se ptá: %s.\n\nOdpovídej pouze česky, stručně a jasně, jako profesionální realitní makléř. Pokud nerozumíš, napiš to česky. Nemíchej jiné jazyky.\n\nPříklad odpovědi:\n- "Dobrý den, rád vám pomohu s výběrem nemovitosti."\n- "Nemovitost číslo 10 je moderní byt v centru města s výbornou dostupností."\n- "Pokud potřebujete další informace, neváhejte se zeptat."`, msg)
 }
@@ -76,7 +75,7 @@ func AIresponce(msg string) string {
 		if err != nil {
 			fmt.Println("[AI RAW CHUNK]", string(scanner.Bytes()))
 			fmt.Println("[AI JSON ERROR]", err)
-			continue // skip this chunk, try next
+			continue
 		}
 		responce += chunk.Response
 	}
