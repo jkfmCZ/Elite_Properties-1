@@ -63,7 +63,6 @@ func insertTask(sumary string, location string, eventStart time.Time, eventEnd t
 		},
 	}
 
-	// nebo konkrétní ID kalendáře
 	event, err = srv.Events.Insert(calendarId, event).Do()
 	if err != nil {
 		log.Fatalf("Unable to create event: %v", err)
